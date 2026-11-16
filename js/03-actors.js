@@ -44,7 +44,7 @@ function eyeOf(a,out){ return out.set(a.pos.x,a.pos.y+1.52*a.scale,a.pos.z); }
 function dirFrom(yaw,pitch,out){ const cp=Math.cos(pitch); return out.set(-Math.sin(yaw)*cp,Math.sin(pitch),-Math.cos(yaw)*cp); }
 
 function updateAvatar(a,dt){ const v=a.av; if(!v) return; if(!a.alive){ if(a.deadT>0){ a.deadT-=dt; const k=1-a.deadT/.6; v.g.visible=true; v.g.rotation.x=Math.min(1.5,k*2.4); v.g.position.y=a.pos.y-Math.max(0,k-.7)*2.5; v.label.visible=v.bar.visible=v.fill.visible=false; } else v.g.visible=false; return; }
-  v.g.visible=!(a.inv>0&&Math.floor(a.inv*10)%2===0); v.label.visible=true; v.g.rotation.x=0;
+  v.g.visible=!(a.inv>0&&Math.floor(a.inv*10)%2===0); v.label.visible=true; v.g.rotation.x=0; v.g.scale.y=a.scale*(a.hsc||1);
   v.g.position.copy(a.pos); v.g.rotation.y=a.yaw; const sp=Math.hypot(a.vel.x,a.vel.z); a.walk+=dt*sp*2.3; const sw=Math.sin(a.walk)*Math.min(1,sp/4)*.75;
   v.legL.rotation.x=sw; v.legR.rotation.x=-sw; v.headG.rotation.x=a.pitch*.7; if(a.kick>0) a.kick=Math.max(0,a.kick-dt*7);
   if(a.melee){ v.armL.rotation.x=-sw+a.kick*2; v.armR.rotation.x=sw+a.kick*2; } else { v.armR.rotation.x=Math.PI/2+a.pitch+a.kick*.25; v.armL.rotation.x=Math.PI/2+a.pitch-.1; v.armL.rotation.z=-.45; }
@@ -105,9 +105,15 @@ function updateProj(dt){ for(let i=PROJ.length-1;i>=0;i--){ const p=PROJ[i]; if(
 
 /* 하트(체력) 줍기 — 로봇 웨이브 */
 function dropHeart(pos){ const m=new THREE.Mesh(UNIT,matB(0x69f0ae)); m.scale.set(.5,.5,.5); m.position.set(pos.x,.6,pos.z); fxG.add(m); const c=new THREE.Mesh(UNIT,matB(0xffffff)); c.scale.set(1.2,.35,.35); m.add(c); const c2=c.clone(); c2.scale.set(.35,1.2,.35); m.add(c2); PICK.push({m,t:14}); }
+/* 맵에 나타나는 강화 아이템 (먼저 먹는 사람이 임자) */
+const POWER = {dmg:{c:0xff5252,ic:"💥",n:"2배 피해 8초"},spd:{c:0xffea00,ic:"⚡",n:"번개 발 8초"},shd:{c:0x40c4ff,ic:"🛡️",n:"방패 +50"}};
+function dropPower(){ const type=pick(Object.keys(POWER)), d=POWER[type], S=W.S*.72, s=safeSpot(rnd(-S,S),rnd(-S,S)); const m=new THREE.Mesh(UNIT,matB(d.c)); m.scale.set(.6,.6,.6); m.position.set(s.x,.7,s.z); fxG.add(m);
+  const l=makeLabel(d.ic,"#fff"); l.scale.set(4.4,1.1,1); l.position.y=1.6; m.add(l); PICK.push({m,t:25,type}); burst(m.position,d.c,8,3,.15,.6,-2); }
+function takePick(p){ const d=POWER[p.type]; if(!d){ P.hp=Math.min(P.maxhp,P.hp+35); SFX.coin(); floatText(p.m.position,"+35 ❤️","#69f0ae",20,.9); return; }
+  if(p.type==="dmg") P.pwD=8; else if(p.type==="spd") P.pwS=8; else P.hp=Math.min(P.maxhp+50,P.hp+50); SFX.up(); UI.banner(d.ic+" "+d.n,"",1.1); }
 function updatePicks(dt){ for(let i=PICK.length-1;i>=0;i--){ const p=PICK[i]; p.t-=dt; p.m.rotation.y+=dt*3; p.m.position.y=.6+Math.sin(p.t*4)*.12;
     const got=P&&P.alive&&Math.hypot(P.pos.x-p.m.position.x,P.pos.z-p.m.position.z)<1.3&&P.pos.y<1.6;
-    if(got){ P.hp=Math.min(P.maxhp,P.hp+35); SFX.coin(); floatText(p.m.position,"+35 ❤️","#69f0ae",20,.9); }
+    if(got) takePick(p);
     if(got||p.t<=0){ fxG.remove(p.m); PICK.splice(i,1); } } }
 
 /* ---------- 봇 AI ---------- */
@@ -120,7 +126,7 @@ function botPickTarget(b){ let best=null, bd=1e9; for(const a of ACT){ if(!a.ali
 function updateBot(b,dt){ if(!b.alive) return; const frozen=M.freeze>0||M.phase!=="play";
   if(b.slowT>0) b.slowT-=dt; if(b.inv>0) b.inv-=dt;
   b.think-=dt; if(b.think<=0){ b.think=.14+Math.random()*.08; b.target=botPickTarget(b); const t=b.target; let see=false;
-    if(t){ eyeOf(b,_be); _bt.set(t.pos.x,t.pos.y+1.3*t.scale,t.pos.z).sub(_be); const d=_bt.length(); _bt.multiplyScalar(1/d); see=d<(b.sight||60)&&rayWorld(_be,_bt,d)>=d-.05; }
+    if(t){ eyeOf(b,_be); _bt.set(t.pos.x,t.pos.y+1.3*t.scale*(t.hsc||1),t.pos.z).sub(_be); const d=_bt.length(); _bt.multiplyScalar(1/d); see=d<(b.sight||60)&&rayWorld(_be,_bt,d)>=d-.05; }
     if(see){ if(!b.see) b.seeT=0; b.last.copy(t.pos); b.hasLast=true; } b.see=see; }
   const t=b.target; let wx=0, wz=0, sp=b.speed*(b.slowT>0?.5:1);
   if(t&&!frozen){ const dx=t.pos.x-b.pos.x, dz=t.pos.z-b.pos.z, dist=Math.hypot(dx,dz)||.01; b.seeT+=dt;
@@ -135,13 +141,13 @@ function updateBot(b,dt){ if(!b.alive) return; const frozen=M.freeze>0||M.phase!
     else if(path){ wx=_mv.x; wz=_mv.z; }
     const l=Math.hypot(wx,wz); if(l>1){ wx/=l; wz/=l; }
     /* 조준 */
-    const ty=t.pos.y+(b.aimHead?1.58:1.02)*t.scale-(b.pos.y+1.52*b.scale); const wantYaw=Math.atan2(-dx,-dz), wantPitch=Math.atan2(ty,dist);
+    const ty=t.pos.y+(b.aimHead?1.58:1.02)*t.scale*(t.hsc||1)-(b.pos.y+1.52*b.scale); const wantYaw=Math.atan2(-dx,-dz), wantPitch=Math.atan2(ty,dist);
     let dy=wantYaw-b.yaw; while(dy>Math.PI) dy-=6.2832; while(dy<-Math.PI) dy+=6.2832; const turn=lerp(4,11,b.skill)*dt; b.yaw+=clamp(dy,-turn,turn); b.pitch+=clamp(wantPitch-b.pitch,-turn,turn);
     /* 사격 */
     if(!b.melee){ const w=WEAPONS[b.wkey]; b.cool-=dt;
       if(b.relT>0){ b.relT-=dt; if(b.relT<=0) b.ammo=w.mag; }
       else if(b.see&&b.seeT>lerp(.95,.28,b.skill)&&b.cool<=0&&Math.abs(dy)<.35&&dist<w.range){
-        eyeOf(b,_be); _bt.set(t.pos.x,t.pos.y+(b.aimHead?1.58:1.02)*t.scale,t.pos.z); _bd.copy(_bt).sub(_be).normalize();
+        eyeOf(b,_be); _bt.set(t.pos.x,t.pos.y+(b.aimHead?1.58:1.02)*t.scale*(t.hsc||1),t.pos.z); _bd.copy(_bt).sub(_be).normalize();
         const tv=Math.hypot(t.vel.x,t.vel.z), err=lerp(.12,.022,b.skill)*(1+tv*.07)*(b.seeT<1.2?1.5:1); _bd.x+=rnd(-err,err); _bd.y+=rnd(-err,err)*.7; _bd.z+=rnd(-err,err); _bd.normalize();
         shoot(b,b.wkey,_be,_bd); b.ammo--; b.cool=w.rate*1.2; b.aimHead=Math.random()<b.skill*.3;
         if(--b.burst<=0){ b.burst=Math.round(rnd(3,9)); b.cool+=rnd(.25,.7)*(1.3-b.skill); }

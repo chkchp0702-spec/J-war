@@ -19,7 +19,7 @@ const UI = {scr:"home",bT:0,sT:0,hT:0,vg:0,ind:[0,0,0],indI:0,
   net(t){ const p=$("netPill"); p.textContent=t; p.classList.toggle("hide",!t); },
   cards(list){ $("cards").innerHTML="<h2>강화 카드를 하나 골라요</h2><div class='row'>"+list.map(u=>`<button class="card" data-a="card" data-v="${u.id}"><b>${u.ic}</b><span>${u.n}</span><small>${u.d}</small></button>`).join("")+"</div>"; $("cards").classList.remove("hide"); },
   hud(dt){ if(!P) return; const hp=clamp(P.hp/P.maxhp,0,1), f=$("hpFill"); f.style.width=(hp*100)+"%"; f.style.background=hp>.5?"linear-gradient(#7CFF6B,#27c93f)":hp>.25?"linear-gradient(#ffe36b,#ffa000)":"linear-gradient(#ff8a80,#e53935)";
-    $("hpTxt").textContent=Math.ceil(P.hp)+(P.inv>0?" 🛡️":""); $("dashFill").style.width=(100*(1-clamp(P.dashLeft/P.dashCd,0,1)))+"%";
+    $("hpTxt").textContent=Math.ceil(P.hp)+(P.inv>0?" 🛡️":"")+(P.pwD>0?" 💥":"")+(P.pwS>0?" ⚡":""); $("btnHide").classList.toggle("dn",!!P.crouchOn); $("dashFill").style.width=(100*(1-clamp(P.dashLeft/P.dashCd,0,1)))+"%";
     $("ammoTxt").innerHTML=P.relT>0?"<small>장전 중…</small>":P.ammo[P.wi]+"<small> / "+magOf(P.wi)+"</small>";
     const cr=$("cross"), zoomed=camera.fov<40; cr.style.display=zoomed||!P.alive?"none":""; cr.style.setProperty("--g",(5+Math.min(14,Math.hypot(P.vel.x,P.vel.z)*1.1+(P.ground?0:5)+VM.kick*6))+"px"); cr.classList.toggle("on",I.onTarget);
     $("scope").classList.toggle("hide",!zoomed); $("supFill").style.width=(P.supT>0?P.supT/6*100:P.sup)+"%"; $("btnSuper").classList.toggle("rdy",P.sup>=100&&P.supT<=0); $("supGlow").style.opacity=P.supT>0?1:0; $("btnNade").style.opacity=P.nadeCd>0?.3:1; $("btnKnife").style.opacity=P.knifeCd>0?.4:1; $("btnSlide").style.opacity=P.slideCd>0||P.slideT>0?.4:1; $("btnDash").style.opacity=P.dashLeft>0?.4:1;
@@ -35,7 +35,7 @@ const UI = {scr:"home",bT:0,sT:0,hT:0,vg:0,ind:[0,0,0],indI:0,
   result(o){ const r=o.r; let h=`<div id="res"><h1 style="color:${o.win?"#ffd740":"#cfd8dc"}">${esc(o.title)}</h1><div>${esc(o.sub)}</div><div class="rw"><span class="chip">🪙 +${r.coins}</span><span class="chip">✨ 경험치 +${r.xp}</span>${r.tro?`<span class="chip">🏆 ${r.tro>0?"+":""}${r.tro}</span>`:""}${r.lvUp?`<span class="chip" style="background:#ffd740;color:#222">🎉 레벨 ${r.lvUp}! 🪙 +${r.bonus}</span>`:""}</div>`;
     if(o.rows) h+=`<table class="sb" style="max-width:420px;margin:0 auto 8px">${o.rows.map((x,i)=>`<tr class="${x.me?"me":""}"><td>${i+1}등</td><td>${esc(x.n)}</td><td>${x.k} 아웃</td></tr>`).join("")}</table>`;
     else h+=`<div class="rw">${o.lines.map(l=>`<span class="chip">${l[0]} ${l[1]}</span>`).join("")}</div>`;
-    h+=`<div class="rowb"><button class="btn y" data-a="again" data-v="${o.again}">${o.again==="lobby"?"방으로 돌아가기":"🔁 한 판 더!"}</button><button class="btn" data-a="home">홈으로</button></div></div>`;
+    UI.chestOk=!!o.chest; h+=`<div class="rowb">${o.chest?'<button class="btn g" data-a="chest">🎁 보상 상자 열기</button>':''}<button class="btn y" data-a="again" data-v="${o.again}">${o.again==="lobby"?"방으로 돌아가기":"🔁 한 판 더!"}</button><button class="btn" data-a="home">홈으로</button></div></div>`;
     $("hud").classList.add("hide"); $("menu").classList.remove("hide"); UI.home(); UI.panel("결과",h,"result"); if(r.lvUp) SFX.up(); },
   lobby(){ if(UI.scr!=="lobby") return; const host=NET.isHost(), ps=[{n:G.name+" (나)",h:host}]; let hostId=""; if(!host){ let j=1e18; for(const k in NET.peers){ const p=NET.peers[k]; if(p.j&&p.j<j){ j=p.j; hostId=k; } } }
     for(const k in NET.peers) ps.push({n:NET.peers[k].n,h:k===hostId});
@@ -69,12 +69,13 @@ function scrSettings(){ UI.panel("⚙️ 설정",`
   <div class="line"><div class="f"><b>화면 돌리는 빠르기</b><small>${G.set.sens.toFixed(1)}배</small></div><input type="range" min="0.4" max="2.5" step="0.1" value="${G.set.sens}" id="sens"></div>
   <div class="line"><div class="f"><b>자동 발사</b><small>조준점이 적에게 닿으면 알아서 쏴요 (휴대폰 추천)</small></div><button class="btn ${G.set.auto?"y":""}" data-a="tog" data-v="auto">${G.set.auto?"켜짐":"꺼짐"}</button></div>
   <div class="line"><div class="f"><b>조준 도움</b><small>조준점이 가까운 적 쪽으로 살짝 붙어요</small></div><button class="btn ${G.set.assist?"y":""}" data-a="tog" data-v="assist">${G.set.assist?"켜짐":"꺼짐"}</button></div>
+  <div class="line"><div class="f"><b>조준 패드 (왼쪽 위)</b><small>패드를 민 방향으로 화면이 계속 돌아가요</small></div><button class="btn ${G.set.pad?"y":""}" data-a="tog" data-v="pad">${G.set.pad?"켜짐":"꺼짐"}</button></div>
   <div class="line"><div class="f"><b>소리</b></div><button class="btn ${G.set.snd?"y":""}" data-a="tog" data-v="snd">${G.set.snd?"켜짐":"꺼짐"}</button></div>
   <div class="line"><div class="f"><b>그래픽</b><small>버벅이면 '가볍게'로 (다음에 켤 때 적용)</small></div><button class="btn" data-a="tog" data-v="gfx">${G.set.gfx?"선명하게":"가볍게"}</button></div>
   ${M.active?"":`<div class="line"><div class="f"><b>기록 모두 지우기</b><small>코인·무기·등급이 모두 사라져요</small></div><button class="btn r" data-a="wipe">지우기</button></div>`}`,M.active?"pause2":"settings"); }
 function scrPatch(){ G.seenVer=VER; save(); UI.panel("📜 패치 노트",PATCH.map(p=>`<div class="line"><div class="f"><b>v${p.v} — ${esc(p.t)}</b><small>${p.d}</small><ul style="margin:6px 0 0;padding-left:18px;font-size:13px">${p.l.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div></div>`).join(""),"patch"); }
 function scrHelp(){ UI.panel("❓ 조작법",`
-  <div class="line"><div class="f"><b>📱 휴대폰 · 태블릿</b><small style="font-size:13px;opacity:1;line-height:1.7">왼쪽 화면을 끌면 이동 · 오른쪽 화면을 끌면 둘러보기<br>🔥 발사(누른 채 끌면 조준도 됨) · 점프(공중에서 한 번 더!) · 대시 · 슬라이드 · 🗡️ 검 · 💣 폭탄<br>저격총은 '조준'을 누르면 확대돼요</small></div></div>
+  <div class="line"><div class="f"><b>📱 휴대폰 · 태블릿</b><small style="font-size:13px;opacity:1;line-height:1.7">왼쪽 화면을 끌면 이동 · 오른쪽 화면을 끌면 둘러보기 · 왼쪽 위 조준 패드로도 조준<br>'숨기'를 켜면 몸을 낮춰 숨고, 🔥 발사를 누르는 순간 벌떡 일어나 쏴요<br>🔥 발사(누른 채 끌면 조준도 됨) · 점프(공중에서 한 번 더!) · 대시 · 슬라이드 · 🗡️ 검 · 💣 폭탄<br>저격총은 '조준'을 누르면 확대돼요</small></div></div>
   <div class="line"><div class="f"><b>💻 컴퓨터</b><small style="font-size:13px;opacity:1;line-height:1.7">WASD 이동 · 마우스 조준 · 왼쪽 클릭 발사 · 오른쪽 클릭 확대<br>스페이스 점프 · Shift 대시 · C 슬라이드 · F 검 · G 폭탄 · R 장전 · Q 무기 교체 · Esc 멈춤</small></div></div>
   <div class="line"><div class="f"><b>💡 꿀팁</b><small style="font-size:13px;opacity:1;line-height:1.7">머리를 맞히면 피해가 1.6배! · 노란 점프대를 밟으면 높이 날아요<br>4초 동안 안 맞으면 체력이 저절로 차요 · 로켓이나 폭탄을 발밑에 터뜨리면 높이 점프!<br>적을 맞히면 ⭐ 필살기 게이지가 차요 (컴퓨터는 E) · 달리다 슬라이드 → 바로 점프하면 훨씬 멀리 가요 · 적 등 뒤에서 검으로 베면 한 방!</small></div></div>`,"help"); }
 function scrDuel(){ const t=tierOf(G.tro), nx=TIERS[TIERS.indexOf(t)+1];
@@ -100,12 +101,18 @@ const UIA = {
   skin(v){ const i=+v, s=SKINS[i]; if(!G.ownSkin[i]){ if(UI.selS!==i){ UI.selS=i; scrSkins(); toast(s.n+" · 🪙 "+s.cost+" — 한 번 더 누르면 사요"); return; } if(G.coins<s.cost){ toast("코인이 모자라요"); return; } G.coins-=s.cost; G.ownSkin[i]=1; SFX.coin(); } G.skin=i; UI.selS=null; save(); scrSkins(); },
   hat(v){ const i=+v, s=HATS[i]; if(!G.ownHat[i]){ if(UI.selH!==i){ UI.selH=i; scrSkins(); toast(s.n+" · 🪙 "+s.cost+" — 한 번 더 누르면 사요"); return; } if(G.coins<s.cost){ toast("코인이 모자라요"); return; } G.coins-=s.cost; G.ownHat[i]=1; SFX.coin(); } G.hat=i; UI.selH=null; save(); scrSkins(); },
   claim(id){ const m=MISSIONS.find(y=>y.id===id), x=G.mis.find(y=>y.id===id); if(!m||!x||x.got||(G.dayc[m.k]||0)<m.n) return; x.got=1; G.coins+=m.rw; save(); SFX.coin(); toast("🪙 +"+m.rw); scrMissions(); },
-  tog(k){ G.set[k]=G.set[k]?0:1; save(); scrSettings(); },
+  tog(k){ G.set[k]=G.set[k]?0:1; save(); document.body.classList.toggle("pad",!!G.set.pad); scrSettings(); },
   wipe(){ if(UI.wipeT&&Date.now()-UI.wipeT<4000){ localStorage.removeItem(SAVE_KEY); location.reload(); } else { UI.wipeT=Date.now(); toast("정말 지우려면 한 번 더 눌러요"); } },
   pause(){ if(!M.active||UI.scr!=="game") return; if(M.type!=="online") M.paused=true; resetInput(); if(document.exitPointerLock) document.exitPointerLock(); scrPause(); },
   resume(){ M.paused=false; $("panel").classList.add("hide"); UI.scr="game"; lastT=0; },
   quit(){ const on=M.type==="online"; stopMatch(); if(on) NET.leave(); UI.showMenu(); },
   card(id){ pickCard(id); },
+  chest(v,b){ if(!UI.chestOk) return; UI.chestOk=false; const r=Math.random(), us=SKINS.map((s,i)=>i).filter(i=>!G.ownSkin[i]), uh=HATS.map((s,i)=>i).filter(i=>!G.ownHat[i]), uw=WKEYS.filter(k=>!G.own[k]&&WEAPONS[k].cost<=1200); let txt;
+    if(r<.04&&uw.length){ const k=pick(uw); G.own[k]=1; txt=WEAPONS[k].ic+" "+WEAPONS[k].n+" 획득!!"; }
+    else if(r<.14&&uh.length){ const i=pick(uh); G.ownHat[i]=1; G.hat=i; txt=HATS[i].ic+" "+HATS[i].n+" 획득!"; }
+    else if(r<.24&&us.length){ const i=pick(us); G.ownSkin[i]=1; G.skin=i; txt="🎨 "+SKINS[i].n+" 옷 획득!"; }
+    else { const c=pick([40,40,60,60,80,80,120,200,400]); G.coins+=c; txt="🪙 코인 +"+c; }
+    save(); SFX.win(); b.outerHTML=`<span class="chip pop" style="background:#ffd740;color:#222;font-size:16px">🎁 ${txt}</span>`; $("pCoin").textContent="🪙 "+G.coins; UI.home(); },
   again(v){ if(v==="gun") startGun(); else if(v==="paint") startPaint(); else if(v==="wave") startWave(); else if(v==="lobby"){ if(NET.on){ UI.panel("🌐 대결 방","","lobby"); UI.lobby(); } else UIA.online(); } else startDuel(+v.split(":")[1]||1); },
   mkroom(){ UIA.enter(String(Math.floor(1000+Math.random()*9000))); },
   joinroom(){ const v=$("roomIn").value.replace(/\D/g,""); if(v.length!==4){ toast("방 번호 4자리를 넣어 주세요"); return; } UIA.enter(v); },
@@ -131,7 +138,7 @@ function frame(t){ requestAnimationFrame(frame); const now=t/1000; let dt=lastT?
   renderer.clear(); renderer.render(scene,camera); if(VM.g.visible&&M.active){ renderer.clearDepth(); renderer.render(vmScene,vmCam); } }
 
 /* ---------- 시작 ---------- */
-(function boot(){ if(TOUCH) document.body.classList.add("touch"); initGL(); buildMap(pick(MAP_KEYS)); ensureDay(); UI.home(); checkVersion();
+(function boot(){ if(TOUCH) document.body.classList.add("touch"); if(G.set.pad) document.body.classList.add("pad"); initGL(); buildMap(pick(MAP_KEYS)); ensureDay(); UI.home(); checkVersion();
   const room=(new URLSearchParams(location.search).get("room")||"").replace(/\D/g,"").slice(0,4);
   if(!G.name){ if(room.length===4) UI.pendingRoom=room; scrName(true); } else if(room.length===4) UIA.enter(room);
   window.__jw={M,G,ACT,W,NET,UI,UIA,I,get P(){ return P; },step(dt,n){ for(let i=0;i<(n||1);i++){ if(M.active&&!M.paused) updateGame(dt); } }};

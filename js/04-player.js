@@ -2,30 +2,35 @@
 /* ===== J war — 조작 · 내 캐릭터 · 손에 든 총 ===== */
 const I = {mx:0,mz:0,fire:false,zoom:false,jumpQ:false,dashQ:false,keys:{},lookId:-1,moveId:-1,lx:0,ly:0,sx:0,sy:0,btn:{},locked:false,onTarget:false};
 function inGame(){ return M.active&&!M.paused&&$("cards").classList.contains("hide")&&$("panel").classList.contains("hide"); }
+Object.assign(I,{aimId:-1,ax:0,ay:0,acx:0,acy:0});
+function aimPadMove(t){ let dx=(t.clientX-I.acx)/46, dy=(t.clientY-I.acy)/46; const l=Math.hypot(dx,dy); if(l>1){ dx/=l; dy/=l; } I.ax=dx; I.ay=dy; $("aimPad").firstChild.style.transform=`translate(${dx*30}px,${dy*30}px)`; }
 function lookBy(dx,dy){ if(!P) return; const k=.0046*G.set.sens*(camera.fov<40?.38:1)*(1-.25*(I.near||0)); I.lookT=performance.now(); P.yaw-=dx*k; P.pitch=clamp(P.pitch-dy*k,-1.45,1.45); VM.swx+=dx*.0006; VM.swy+=dy*.0006; }
 
 /* ---------- 터치 ---------- */
-function touchAct(act){ if(act==="jump") I.jumpQ=true; else if(act==="dash") I.dashQ=true; else if(act==="reload") reload(); else if(act==="swap") swapWeapon(); else if(act==="zoom") I.zoom=!I.zoom; else if(act==="slide") I.slideQ=true; else if(act==="knife") knife(); else if(act==="nade") throwNade(); else if(act==="super") superGo(); }
+function touchAct(act){ if(act==="jump") I.jumpQ=true; else if(act==="dash") I.dashQ=true; else if(act==="reload") reload(); else if(act==="swap") swapWeapon(); else if(act==="zoom") I.zoom=!I.zoom; else if(act==="slide") I.slideQ=true; else if(act==="knife") knife(); else if(act==="nade") throwNade(); else if(act==="super") superGo(); else if(act==="hide"&&P){ P.crouchOn=!P.crouchOn; SFX.click(); } }
 addEventListener("touchstart",e=>{ if(!inGame()) return;
   for(const t of e.changedTouches){ const tg=t.target; if(tg.closest&&tg.closest("[data-a]")) continue; const el=tg.closest&&tg.closest("[data-t]");
-    if(el){ el.classList.add("dn"); I.btn[t.identifier]=el; const a=el.dataset.t; if(a==="fire") I.fire=true; else touchAct(a);
+    if(el&&el.dataset.t==="aim"){ const r=el.getBoundingClientRect(); I.aimId=t.identifier; I.acx=r.left+r.width/2; I.acy=r.top+r.height/2; aimPadMove(t); }
+    else if(el){ el.classList.add("dn"); I.btn[t.identifier]=el; const a=el.dataset.t; if(a==="fire") I.fire=true; else touchAct(a);
       if(I.lookId<0&&(a==="fire"||a==="jump"||a==="zoom")){ I.lookId=t.identifier; I.lx=t.clientX; I.ly=t.clientY; } }
     else if(t.clientX<innerWidth*.42&&I.moveId<0){ I.moveId=t.identifier; I.sx=t.clientX; I.sy=t.clientY; const s=$("stick"); s.style.display="block"; s.style.left=I.sx+"px"; s.style.top=I.sy+"px"; s.firstChild.style.transform=""; }
     else if(I.lookId<0){ I.lookId=t.identifier; I.lx=t.clientX; I.ly=t.clientY; } }
   e.preventDefault(); },{passive:false});
 addEventListener("touchmove",e=>{ if(!inGame()) return;
   for(const t of e.changedTouches){
-    if(t.identifier===I.moveId){ let dx=t.clientX-I.sx, dy=t.clientY-I.sy; const l=Math.hypot(dx,dy), R=52; if(l>R){ dx*=R/l; dy*=R/l; } I.mx=dx/R; I.mz=-dy/R; $("stick").firstChild.style.transform=`translate(${dx}px,${dy}px)`; }
+    if(t.identifier===I.aimId) aimPadMove(t);
+    else if(t.identifier===I.moveId){ let dx=t.clientX-I.sx, dy=t.clientY-I.sy; const l=Math.hypot(dx,dy), R=52; if(l>R){ dx*=R/l; dy*=R/l; } I.mx=dx/R; I.mz=-dy/R; $("stick").firstChild.style.transform=`translate(${dx}px,${dy}px)`; }
     else if(t.identifier===I.lookId){ lookBy(t.clientX-I.lx,t.clientY-I.ly); I.lx=t.clientX; I.ly=t.clientY; } }
   e.preventDefault(); },{passive:false});
 function touchEnd(e){ for(const t of e.changedTouches){ const el=I.btn[t.identifier]; if(el){ el.classList.remove("dn"); if(el.dataset.t==="fire") I.fire=false; delete I.btn[t.identifier]; }
+    if(t.identifier===I.aimId){ I.aimId=-1; I.ax=I.ay=0; $("aimPad").firstChild.style.transform=""; }
     if(t.identifier===I.moveId){ I.moveId=-1; I.mx=I.mz=0; $("stick").style.display="none"; } if(t.identifier===I.lookId) I.lookId=-1; } }
 addEventListener("touchend",touchEnd); addEventListener("touchcancel",touchEnd);
-function resetInput(){ I.mx=I.mz=0; I.fire=false; I.zoom=false; I.jumpQ=I.dashQ=I.slideQ=false; I.moveId=I.lookId=-1; I.keys={}; I.btn={}; $("stick").style.display="none"; document.querySelectorAll(".tb.dn").forEach(e=>e.classList.remove("dn")); }
+function resetInput(){ I.mx=I.mz=0; I.fire=false; I.zoom=false; I.jumpQ=I.dashQ=I.slideQ=false; I.moveId=I.lookId=-1; I.keys={}; I.btn={}; I.aimId=-1; I.ax=I.ay=0; $("aimPad").firstChild.style.transform=""; $("stick").style.display="none"; document.querySelectorAll(".tb.dn").forEach(e=>e.classList.remove("dn")); }
 
 /* ---------- 키보드 · 마우스 ---------- */
 addEventListener("keydown",e=>{ if(e.target.tagName==="INPUT") return; const k=e.code; I.keys[k]=true; if(!inGame()){ if(k==="Escape"&&M.active&&M.paused) UIA.resume(); return; }
-  if(k==="Space"){ I.jumpQ=true; e.preventDefault(); } else if(k==="ShiftLeft"||k==="ShiftRight") I.dashQ=true; else if(k==="KeyR") reload(); else if(k==="KeyC"||k==="ControlLeft") I.slideQ=true; else if(k==="KeyF"||k==="KeyV") knife(); else if(k==="KeyG") throwNade(); else if(k==="KeyE") superGo(); else if(k==="KeyQ"||k==="Digit1"||k==="Digit2") swapWeapon(k==="Digit1"?0:k==="Digit2"?1:-1); else if(k==="Escape"||k==="KeyP") UIA.pause(); });
+  if(k==="Space"){ I.jumpQ=true; e.preventDefault(); } else if(k==="ShiftLeft"||k==="ShiftRight") I.dashQ=true; else if(k==="KeyR") reload(); else if(k==="KeyC"||k==="ControlLeft") I.slideQ=true; else if(k==="KeyF"||k==="KeyV") knife(); else if(k==="KeyG") throwNade(); else if(k==="KeyE") superGo(); else if((k==="KeyX"||k==="KeyZ")&&P){ P.crouchOn=!P.crouchOn; } else if(k==="KeyQ"||k==="Digit1"||k==="Digit2") swapWeapon(k==="Digit1"?0:k==="Digit2"?1:-1); else if(k==="Escape"||k==="KeyP") UIA.pause(); });
 addEventListener("keyup",e=>{ I.keys[e.code]=false; });
 addEventListener("mousemove",e=>{ if(I.locked&&inGame()) lookBy(e.movementX*.5,e.movementY*.5); });
 addEventListener("mousedown",e=>{ if(TOUCH||!inGame()) return; if(e.target.closest("[data-a]")) return; if(!I.locked){ const c=$("gl"); c.requestPointerLock&&c.requestPointerLock(); }
@@ -37,7 +42,7 @@ document.addEventListener("pointerlockchange",()=>{ const was=I.locked; I.locked
 
 /* ---------- 내 캐릭터 ---------- */
 function spawnPlayer(x,z,yaw,team){ P=newActor({noAv:true,isPlayer:true,id:G.id,name:G.name||"나",team,col:SKINS[G.skin].c,speed:7});
-  Object.assign(P,{eq:G.eq.slice(),wi:0,ammo:[0,0],cool:0,relT:0,swT:0,air:0,dashT:0,dashCd:2.4,dashLeft:0,dvx:0,dvz:0,rateMul:1,magMul:1,relMul:1,regenMul:1,headMul:1,regenT:0,rec:0,bob:0,roll:0,dip:0,slideT:0,slideCd:0,crouch:0,sdx:0,sdz:0,knifeCd:0,nadeCd:0,stepT:0,sup:0,supT:0});
+  Object.assign(P,{eq:G.eq.slice(),wi:0,ammo:[0,0],cool:0,relT:0,swT:0,air:0,dashT:0,dashCd:2.4,dashLeft:0,dvx:0,dvz:0,rateMul:1,magMul:1,relMul:1,regenMul:1,headMul:1,regenT:0,rec:0,bob:0,roll:0,dip:0,slideT:0,slideCd:0,crouch:0,sdx:0,sdz:0,knifeCd:0,nadeCd:0,stepT:0,sup:0,supT:0,crouchOn:false,hide:false,hsc:1,pwD:0,pwS:0,fireT:-9});
   placeActor(P,x,z,yaw); P.ammo=[magOf(0),magOf(1)]; P.wkey=P.eq[0]; buildVM(P.wkey); camera.fov=baseFov(); camera.updateProjectionMatrix(); UI.weapon(); return P; }
 function placeActor(a,x,z,yaw){ const s=safeSpot(x,z); a.pos.set(s.x,0,s.z); a.vel.set(0,0,0); a.yaw=yaw||0; a.pitch=0; a.hp=a.maxhp; a.alive=true; a.slowT=0; a.hurtT=0; a.streak=a.streak||0;
   if(a.remote){ a.tx=s.x; a.ty=0; a.tz=s.z; a.tyaw=a.yaw; a.tp=0; } if(a.isBot){ a.ammo=WEAPONS[a.wkey].mag; a.relT=0; a.see=false; a.hasLast=false; a.cool=rnd(.3,.8); }
@@ -74,14 +79,15 @@ function playerFire(){ if(P.knifeOnly){ knife(); return; } const k=P.wkey, w=WEA
   if(P.ammo[P.wi]<=0){ reload(); return; }
   if(!(P.supT>0)) P.ammo[P.wi]--; P.cool=w.rate*P.rateMul*(P.supT>0?.6:1); dirFrom(P.yaw,P.pitch,_pd); _po.copy(camera.position);
   const mv=Math.hypot(P.vel.x,P.vel.z); let sm=1+(mv>3?.5:0)+(P.ground?0:.6); if(w.zoom) sm=camera.fov<40?1:w.hip/w.spread;
-  shoot(P,k,_po,_pd,{sm,dm:1+.02*stars(k)}); VM.kick=1; VM.flash=.05; FX.shake=Math.max(FX.shake,k==="sniper"||k==="shotgun"||k==="rocket"?.26:.06); P.rec=Math.min(.09,P.rec+(k==="sniper"||k==="shotgun"||k==="rocket"?.05:.012));
+  shoot(P,k,_po,_pd,{sm,dm:(1+.02*stars(k))*(P.pwD>0?2:1)}); VM.kick=1; VM.flash=.05; P.fireT=M.t; FX.shake=Math.max(FX.shake,k==="sniper"||k==="shotgun"||k==="rocket"?.26:.06); P.rec=Math.min(.09,P.rec+(k==="sniper"||k==="shotgun"||k==="rocket"?.05:.012));
   if(M.type==="online") NET.shot(k,_po,_pd); if(P.ammo[P.wi]<=0) reload(); }
-function updatePlayer(dt){ if(!P) return; if(P.inv>0) P.inv-=dt; if(P.slowT>0) P.slowT-=dt; if(P.dashLeft>0) P.dashLeft-=dt; if(P.knifeCd>0) P.knifeCd-=dt; if(P.nadeCd>0) P.nadeCd-=dt; if(P.slideCd>0) P.slideCd-=dt; if(P.supT>0){ P.supT-=dt; if(P.supT<=0) P.dmgMul/=1.3; }
+function updatePlayer(dt){ if(!P) return; if(P.inv>0) P.inv-=dt; if(P.slowT>0) P.slowT-=dt; if(P.dashLeft>0) P.dashLeft-=dt; if(P.knifeCd>0) P.knifeCd-=dt; if(P.nadeCd>0) P.nadeCd-=dt; if(P.slideCd>0) P.slideCd-=dt; if(P.pwD>0) P.pwD-=dt; if(P.pwS>0) P.pwS-=dt; if(P.supT>0){ P.supT-=dt; if(P.supT<=0) P.dmgMul/=1.3; }
   const w=WEAPONS[P.wkey], frozen=M.freeze>0||M.phase!=="play";
   if(P.alive){
     let mx=I.mx, mz=I.mz; const K=I.keys; if(K.KeyW||K.ArrowUp) mz+=1; if(K.KeyS||K.ArrowDown) mz-=1; if(K.KeyD||K.ArrowRight) mx+=1; if(K.KeyA||K.ArrowLeft) mx-=1;
     const l=Math.hypot(mx,mz); if(l>1){ mx/=l; mz/=l; } if(frozen){ mx=mz=0; I.jumpQ=I.dashQ=I.slideQ=false; }
-    const s=Math.sin(P.yaw), c=Math.cos(P.yaw), zoomed=camera.fov<40, sp=P.speed*(P.slowT>0?.55:1)*(zoomed?.55:1)*paintMul(P)*(P.supT>0?1.25:1);
+    if(I.ax||I.ay){ const zf=camera.fov<40?.4:1, ax=Math.sign(I.ax)*Math.pow(Math.abs(I.ax),1.6), ay=Math.sign(I.ay)*Math.pow(Math.abs(I.ay),1.6); P.yaw-=ax*2.9*G.set.sens*zf*dt; P.pitch=clamp(P.pitch-ay*1.8*G.set.sens*zf*dt,-1.45,1.45); I.lookT=performance.now(); }
+    const s=Math.sin(P.yaw), c=Math.cos(P.yaw), zoomed=camera.fov<40, hide=P.hide=P.crouchOn&&P.ground&&P.slideT<=0&&!I.fire&&M.t-P.fireT>.35, sp=P.speed*(hide?.5:1)*(P.pwS>0?1.35:1)*(P.slowT>0?.55:1)*(zoomed?.55:1)*paintMul(P)*(P.supT>0?1.25:1);
     const wx=(c*mx-s*mz)*sp, wz=(-s*mx-c*mz)*sp, hs=Math.hypot(P.vel.x,P.vel.z);
     if(I.slideQ){ I.slideQ=false; if(P.ground&&P.slideT<=0&&P.slideCd<=0&&hs>2.5){ P.slideT=.75; P.sdx=P.vel.x/hs; P.sdz=P.vel.z/hs; SFX.dash(); bump("slide",1); } }
     if(P.slideT>0){ P.slideT-=dt; const v=sp*(.95+.8*Math.max(0,P.slideT)/.75); P.vel.x=P.sdx*v; P.vel.z=P.sdz*v; if(P.slideT<=0) P.slideCd=.45; if(Math.random()<.5) burst(P.pos,0xffffff,1,2,.1,.3,1); }
@@ -93,14 +99,14 @@ function updatePlayer(dt){ if(!P) return; if(P.inv>0) P.inv-=dt; if(P.slowT>0) P
     P.regenT-=dt; if(P.regenT<=0&&P.hp<P.maxhp) P.hp=Math.min(P.maxhp,P.hp+7*P.regenMul*dt);
     P.cool-=dt; if(P.swT>0) P.swT-=dt; if(P.relT>0){ P.relT-=dt; if(P.relT<=0){ P.ammo[P.wi]=magOf(P.wi); SFX.reloaded(); } }
     aimAssist(dt); aimCheck(); const auto=G.set.auto&&I.onTarget&&(!w.zoom||zoomed);
-    if((I.fire||auto)&&!frozen) playerFire();
+    if((I.fire||auto)&&!frozen&&(P.crouch<.4||P.slideT>0)) playerFire();
     P.bob+=dt*Math.hypot(P.vel.x,P.vel.z)*(P.ground?1.7:0);
     if(P.ground&&P.slideT<=0){ P.stepT-=dt*Math.hypot(P.vel.x,P.vel.z); if(P.stepT<=0){ P.stepT=2.7; SFX.step(); } }
   } else { P.vel.set(0,0,0); I.zoom=false; }
   if(P.rec>0) P.rec=Math.max(0,P.rec-dt*.35);
   const tf=(w.zoom&&I.zoom&&P.alive)?w.zoom:baseFov()+(P.dashT>0?10:0); if(Math.abs(camera.fov-tf)>.1){ camera.fov+=(tf-camera.fov)*(1-Math.exp(-16*dt)); camera.updateProjectionMatrix(); }
   P.dip*=Math.exp(-9*dt); { const st=P.vel.x*Math.cos(P.yaw)-P.vel.z*Math.sin(P.yaw); P.roll+=(-st*.0055-P.roll)*(1-Math.exp(-8*dt)); }
-  P.crouch+=((P.slideT>0&&P.alive?1:0)-P.crouch)*(1-Math.exp(-14*dt));
+  P.crouch+=(((P.slideT>0||P.hide)&&P.alive?1:0)-P.crouch)*(1-Math.exp(-16*dt)); P.hsc=1-.42*P.crouch;
   camera.position.set(P.pos.x,P.pos.y+(P.alive?1.52:.5)+Math.sin(P.bob*2)*.03-P.dip-P.crouch*.62,P.pos.z); const sh=FX.shake;
   camera.rotation.set(P.pitch+P.rec+(sh?rnd(-sh,sh)*.05:0),P.yaw+(sh?rnd(-sh,sh)*.05:0),P.alive?P.roll+P.crouch*.07:0); }
 

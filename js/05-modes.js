@@ -11,7 +11,7 @@ function grant(coins,xp,tro){ const lv0=lvOf(G.xp); G.coins+=coins; G.xp+=xp; G.
   if(lv1>lv0){ for(let l=lv0+1;l<=lv1;l++) bonus+=40*l; G.coins+=bonus; } save(); return {coins,xp,tro:tro||0,lvUp:lv1>lv0?lv1:0,bonus}; }
 
 /* ---------- 공통 ---------- */
-function beginMatch(type,map){ clearActors(); clearFX(); paintClear(); buildMap(map); Object.assign(M,{active:true,paused:false,type,map,t:0,kills:0,hs:0,freeze:0,botDmg:1,phase:"play",pt:0});
+function beginMatch(type,map){ clearActors(); clearFX(); paintClear(); buildMap(map); Object.assign(M,{active:true,paused:false,type,map,t:0,kills:0,hs:0,freeze:0,botDmg:1,phase:"play",pt:0,pwT:9});
   resetInput(); UI.showGame(); }
 function stopMatch(){ M.active=false; M.paused=false; M.phase=""; resetInput(); if(document.exitPointerLock) document.exitPointerLock(); }
 function onKillCommon(t,by,info){ UI.feed(by?by.name:"",t.name,info.w&&WEAPONS[info.w]?WEAPONS[info.w].ic:"💥",by===P||t===P);
@@ -41,7 +41,7 @@ function updateDuel(dt){ if(M.phase==="play"&&M.freeze<=0){ M.rt-=dt; UI.timer(M
   else if(M.phase==="roundEnd"){ M.pt-=dt; if(M.pt<=0){ if(M.sc[0]>=M.need||M.sc[1]>=M.need) endDuel(M.sc[0]>M.sc[1]); else duelRound(); } } }
 function endDuel(win){ stopMatch(); G.stat.games++; bump("games",1); if(win){ G.stat.win++; bump("duelWin",1); }
   const r=grant(win?50+25*M.n:15+5*M.n, (win?40:15)+M.kills*5, win?10+2*M.n:-5); win?SFX.win():SFX.lose();
-  UI.result({title:win?"승리!":"패배…",win,sub:M.n+"대"+M.n+" 결투 · "+M.sc[0]+" : "+M.sc[1],lines:[["아웃시킨 적",M.kills],["헤드샷",M.hs]],r,again:"duel:"+M.n}); }
+  UI.result({title:win?"승리!":"패배…",win,sub:M.n+"대"+M.n+" 결투 · "+M.sc[0]+" : "+M.sc[1],lines:[["아웃시킨 적",M.kills],["헤드샷",M.hs]],r,again:"duel:"+M.n,chest:win}); }
 
 /* ---------- 로봇 웨이브 ---------- */
 const ROBOTS = {
@@ -70,7 +70,7 @@ function updateWave(dt){ UI.timer(-1,"웨이브 "+M.wave+" · "+M.score+"점");
 function pickCard(id){ const u=UPGRADES.find(x=>x.id===id); if(!u||M.phase!=="cards") return; u.f(P); P.ammo=[magOf(0),magOf(1)]; SFX.up(); $("cards").classList.add("hide"); nextWave(); }
 function endWave(){ stopMatch(); G.stat.games++; bump("games",1); const best=M.wave>G.best.wave; if(best) G.best.wave=M.wave;
   const r=grant(M.wave*14+M.kills*2,M.wave*12+M.kills*3,0); best?SFX.win():SFX.lose();
-  UI.result({title:best?"새 기록!":"게임 끝",win:best,sub:"로봇 웨이브 "+M.wave+" 도달 (최고 "+G.best.wave+")",lines:[["점수",M.score],["부순 로봇",M.kills],["헤드샷",M.hs]],r,again:"wave"}); }
+  UI.result({title:best?"새 기록!":"게임 끝",win:best,sub:"로봇 웨이브 "+M.wave+" 도달 (최고 "+G.best.wave+")",lines:[["점수",M.score],["부순 로봇",M.kills],["헤드샷",M.hs]],r,again:"wave",chest:M.wave>=5}); }
 
 /* ---------- 친구와 대결 (온라인, 모두가 적) ---------- */
 function remoteActor(p){ let a=ACT.find(x=>x.id===p.id); if(a) return a;
@@ -94,7 +94,7 @@ function updateOnline(dt){ const left=(M.end-Date.now())/1000; UI.timer(left);
 function endOnline(){ const rows=scoreRows(), rank=rows.findIndex(r=>r.me)+1, multi=rows.length>1; stopMatch(); NET.finished[M.mid]=1; G.stat.games++; bump("games",1); if(multi) bump("online",1);
   if(M.kills>G.best.kills) G.best.kills=M.kills; const first=multi&&rank===1; if(first) G.stat.win++;
   const r=grant(30+M.kills*12+(first?60:0),20+M.kills*6,0); first?SFX.win():jingle([523,659,784],.1);
-  UI.result({title:first?"1등!":rank+"등",win:first,sub:"친구와 대결 · "+MAPS[M.map].n,lines:[["아웃시킨 적",M.kills],["헤드샷",M.hs]],r,rows,again:"lobby"}); }
+  UI.result({title:first?"1등!":rank+"등",win:first,sub:"친구와 대결 · "+MAPS[M.map].n,lines:[["아웃시킨 적",M.kills],["헤드샷",M.hs]],r,rows,again:"lobby",chest:first}); }
 
 /* ---------- 🔁 총 바꾸기 (아웃시킬 때마다 총이 바뀜, 마지막은 에너지 검) ---------- */
 function setPlayerWeapon(k){ P.eq=[k,k]; P.wi=0; P.wkey=k; P.ammo=[magOf(0),magOf(1)]; P.relT=0; P.swT=.2; I.zoom=false; buildVM(k); UI.weapon(); }
@@ -114,7 +114,7 @@ function updateGun(dt){ if(M.phase==="over"){ M.pt-=dt; if(M.pt<=0) endGun(); re
   M.sbT-=dt; if(M.sbT<=0){ M.sbT=.4; UI.board(ACT.map(a=>({n:a.name,k:Math.min(a.gi,N)+1,me:a===P})).sort((x,y)=>y.k-x.k)); UI.timer(-1,"내 총 "+(Math.min(P.gi,N)+1)+" / "+(N+1)); } }
 function endGun(){ const win=M.win, st=Math.min(P.gi,GG.length)+1; stopMatch(); G.stat.games++; bump("games",1); if(win) G.stat.win++;
   const r=grant(win?120:30+st*5,(win?50:20)+M.kills*5,win?6:0); win?SFX.win():SFX.lose();
-  UI.result({title:win?"우승!":"아쉽다…",win,sub:"총 바꾸기 · "+st+" / "+(GG.length+1)+" 단계",lines:[["아웃시킨 적",M.kills],["헤드샷",M.hs]],r,again:"gun"}); }
+  UI.result({title:win?"우승!":"아쉽다…",win,sub:"총 바꾸기 · "+st+" / "+(GG.length+1)+" 단계",lines:[["아웃시킨 적",M.kills],["헤드샷",M.hs]],r,again:"gun",chest:win}); }
 
 /* ---------- 🎨 색칠 대결 (3대3, 바닥을 더 많이 칠한 팀이 승리) ---------- */
 const PAINT = {g:null,cnt:[0,0],cv:null,cx:null,tex:null,mesh:null,dirty:false,free:1,col:["#2979ff","#ff9100"]};
@@ -139,10 +139,11 @@ function updatePaint(dt){ if(M.phase==="over"){ M.pt-=dt; if(M.pt<=0) endPaint()
   if(M.rt<=0){ M.win=PAINT.cnt[0]>=PAINT.cnt[1]; M.phase="over"; M.pt=2; UI.banner(M.win?"우리 팀 승리!":"상대 팀 승리","",2); } }
 function endPaint(){ const win=M.win, f=PAINT.free||1, a=Math.round(PAINT.cnt[0]/f*100), b=Math.round(PAINT.cnt[1]/f*100); stopMatch(); G.stat.games++; bump("games",1); if(win) G.stat.win++;
   const r=grant(win?90:30,(win?40:15)+M.kills*4,win?6:-3); win?SFX.win():SFX.lose();
-  UI.result({title:win?"승리!":"패배…",win,sub:"색칠 대결 · 우리 "+a+"% : 상대 "+b+"%",lines:[["아웃시킨 적",M.kills],["헤드샷",M.hs]],r,again:"paint"}); }
+  UI.result({title:win?"승리!":"패배…",win,sub:"색칠 대결 · 우리 "+a+"% : 상대 "+b+"%",lines:[["아웃시킨 적",M.kills],["헤드샷",M.hs]],r,again:"paint",chest:win}); }
 
 /* ---------- 매 프레임 ---------- */
 function updateGame(dt){ M.t+=dt; tickFreeze(dt); updatePlayer(dt);
   for(let i=0;i<ACT.length;i++){ const a=ACT[i]; if(a.isBot) updateBot(a,dt); else if(a.remote) updateRemote(a,dt); updateAvatar(a,dt); }
   updateProj(dt); updatePicks(dt);
+  if(M.type!=="online"&&M.phase==="play"&&M.freeze<=0){ M.pwT-=dt; if(M.pwT<=0){ M.pwT=13; if(PICK.length<3) dropPower(); } }
   if(M.type==="duel") updateDuel(dt); else if(M.type==="wave") updateWave(dt); else if(M.type==="online") updateOnline(dt); else if(M.type==="gun") updateGun(dt); else if(M.type==="paint") updatePaint(dt); }

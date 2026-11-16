@@ -48,7 +48,7 @@ const NET = {peers:{},room:"",on:false,clients:[],up:0,seq:0,seen:{},seenN:0,fin
     p.last=performance.now(); const inMatch=M.active&&M.type==="online", a=inMatch?remoteActor(p):null;
     if(d.t==="hi"){ const isNew=!p.known; p.known=true; p.n=String(d.n||"친구").slice(0,8); p.sk=d.sk|0; p.ht=d.ht|0; p.j=+d.j||0; if(WEAPONS[d.w]) p.w=d.w;
       if(isNew){ toast(p.n+" 입장!"); jingle([523,659,784]); NET.hello(); if(a&&a.name!==p.n){ removeActor(a); remoteActor(p); } } NET.pill(); }
-    else if(d.t==="st"){ p.k=d.k|0; p.dd=d.dd|0; if(!a) return; a.tx=+d.x; a.ty=+d.y; a.tz=+d.z; a.tyaw=+d.a; a.tp=+d.p; a.hp=+d.h; a.maxhp=Math.max(100,a.hp); a.inv=d.iv?.35:0;
+    else if(d.t==="st"){ p.k=d.k|0; p.dd=d.dd|0; if(!a) return; a.tx=+d.x; a.ty=+d.y; a.tz=+d.z; a.tyaw=+d.a; a.tp=+d.p; a.hp=+d.h; a.maxhp=Math.max(100,a.hp); a.inv=d.iv?.35:0; a.hsc=d.c?.6:1;
       if(d.al&&!a.alive){ a.alive=true; a.pos.set(a.tx,a.ty,a.tz); a.yaw=a.tyaw; } else if(!d.al&&a.alive){ a.dT=(a.dT||0)+1; if(a.dT>3){ a.alive=false; a.dT=0; } } else a.dT=0; }
     else if(d.t==="sh"){ if(a&&a.alive&&WEAPONS[d.w]&&d.o&&d.d){ a.wkey=d.w; shoot(a,d.w,_no.set(+d.o[0],+d.o[1],+d.o[2]),_nd.set(+d.d[0],+d.d[1],+d.d[2]).normalize(),{visual:true}); } }
     else if(d.t==="hit"){ if(a) netHit(d,a); }
@@ -58,6 +58,6 @@ const NET = {peers:{},room:"",on:false,clients:[],up:0,seq:0,seen:{},seenN:0,fin
   drop(p,why){ delete NET.peers[p.id]; const a=ACT.find(x=>x.id===p.id&&x.remote); if(a) removeActor(a); if(p.known) toast(p.n+" "+why); NET.pill(); },
   tick(dt){ if(!NET.on) return; NET.hiT-=dt; if(NET.hiT<=0){ NET.hiT=2.5; NET.hello(); const now=performance.now(); for(const k in NET.peers){ const p=NET.peers[k]; if(now-p.last>8000) NET.drop(p,"연결 끊김"); } }
     if(M.active&&M.type==="online"&&P){ NET.stT-=dt; if(NET.stT<=0){ NET.stT=.1; const r=v=>Math.round(v*100)/100;
-      NET.send({t:"st",x:r(P.pos.x),y:r(P.pos.y),z:r(P.pos.z),a:r(P.yaw),p:r(P.pitch),h:Math.round(P.hp),al:P.alive?1:0,k:P.kills,dd:P.deaths,iv:P.inv>0?1:0}); } } },
+      NET.send({t:"st",x:r(P.pos.x),y:r(P.pos.y),z:r(P.pos.z),a:r(P.yaw),p:r(P.pitch),h:Math.round(P.hp),al:P.alive?1:0,c:P.crouch>.5?1:0,k:P.kills,dd:P.deaths,iv:P.inv>0?1:0}); } } },
 };
 const _no = V3(), _nd = V3();

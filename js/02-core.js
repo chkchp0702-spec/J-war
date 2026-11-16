@@ -8,7 +8,7 @@ const V3 = (x,y,z) => new THREE.Vector3(x||0,y||0,z||0);
 /* ---------- 저장 ---------- */
 const SAVE_KEY = "jwar-save-1";
 function defSave(){ return {name:"",coins:0,xp:0,tro:0,own:{pistol:1,rifle:1},eq:["rifle","pistol"],skin:0,hat:0,ownSkin:{0:1},ownHat:{0:1},
-  best:{wave:0,kills:0},stat:{k:0,hs:0,win:0,games:0},wk:{},day:"",dayc:{},mis:[],set:{sens:1,auto:TOUCH?1:0,assist:TOUCH?1:0,snd:1,gfx:1},id:Math.random().toString(36).slice(2,10),seenVer:0}; }
+  best:{wave:0,kills:0},stat:{k:0,hs:0,win:0,games:0},wk:{},day:"",dayc:{},mis:[],set:{sens:1,auto:TOUCH?1:0,assist:TOUCH?1:0,pad:TOUCH?1:0,snd:1,gfx:1},id:Math.random().toString(36).slice(2,10),seenVer:0}; }
 let G = defSave();
 try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)||"null"); if(s){ const d=defSave(); G=Object.assign(d,s); G.set=Object.assign(defSave().set,s.set||{}); G.best=Object.assign({wave:0,kills:0},s.best||{}); G.stat=Object.assign({k:0,hs:0,win:0,games:0},s.stat||{}); } }catch(e){}
 function save(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(G)); }catch(e){} }
@@ -161,10 +161,10 @@ function rayWorld(o,d,max){ let t=max; if(d.y<-1e-6){ const tg=-o.y/d.y; if(tg<t
   const B=W.boxes; for(let i=0;i<B.length;i++){ const tt=rayBox(o,d,B[i]); if(tt>=0&&tt<t) t=tt; } return t; }
 const _hb = {x0:0,x1:0,y0:0,y1:0,z0:0,z1:0};
 /* 캐릭터 맞았는지: 머리(공) + 몸(상자). mag 는 조준 보정(터치일 때 조금 크게) */
-function rayActor(o,d,a,mag){ const s=a.scale||1, w=.4*s*mag; let best=-1, head=false;
-  _hb.x0=a.pos.x-w; _hb.x1=a.pos.x+w; _hb.z0=a.pos.z-w; _hb.z1=a.pos.z+w; _hb.y0=a.pos.y; _hb.y1=a.pos.y+1.36*s;
+function rayActor(o,d,a,mag){ const s=a.scale||1, w=.4*s*mag, hc=a.hsc||1; let best=-1, head=false;
+  _hb.x0=a.pos.x-w; _hb.x1=a.pos.x+w; _hb.z0=a.pos.z-w; _hb.z1=a.pos.z+w; _hb.y0=a.pos.y; _hb.y1=a.pos.y+1.36*s*hc;
   const tb=rayBox(o,d,_hb); if(tb>=0) best=tb;
-  const hx=a.pos.x-o.x, hy=a.pos.y+1.6*s-o.y, hz=a.pos.z-o.z, r=.3*s*mag, tc=hx*d.x+hy*d.y+hz*d.z;
+  const hx=a.pos.x-o.x, hy=a.pos.y+1.6*s*hc-o.y, hz=a.pos.z-o.z, r=.3*s*mag, tc=hx*d.x+hy*d.y+hz*d.z;
   if(tc>0){ const d2=hx*hx+hy*hy+hz*hz-tc*tc; if(d2<r*r){ const th=tc-Math.sqrt(r*r-d2); if(best<0||th<best+.25){ best=Math.max(0,th); head=true; } } }
   return best<0?null:{t:best,head}; }
 
