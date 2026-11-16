@@ -83,7 +83,7 @@ function startOnline(cfg){ beginMatch("online",cfg.map); Object.assign(M,{end:cf
   UI.banner("대결 시작!","모두가 적! 제일 많이 아웃시키면 1등",2); SFX.go(); UI.score("","",1); }
 function onlineKill(t,by,info){ if(t!==P) return; onKillCommon(t,by,info); NET.send({t:"dead",by:by?by.id:"",w:info.w||"",h:info.head?1:0}); M.resp=3; UI.banner("아웃!",(by?by.name+" 에게 당함 · ":"")+"3초 뒤 다시 등장",2.6); }
 function netHit(d,from){ if(M.type!=="online"||!M.active||!P||!P.alive||d.to!==G.id) return; damage(P,+d.d||0,from,{head:!!d.h,w:d.w,slow:+d.s||0}); }
-function netDead(d,a){ if(M.type!=="online"||!M.active) return; const by=d.by===G.id?P:ACT.find(x=>x.id===d.by); if(a.alive){ a.alive=false; a.hp=0; _fp.set(a.pos.x,a.pos.y+1,a.pos.z); burst(_fp,a.col,16,7,.24,.9,14); }
+function netDead(d,a){ if(M.type!=="online"||!M.active) return; const by=d.by===G.id?P:ACT.find(x=>x.id===d.by); if(a.alive){ a.alive=false; a.hp=0; a.deadT=.6; _fp.set(a.pos.x,a.pos.y+1,a.pos.z); burst(_fp,a.col,16,7,.24,.9,14); }
   if(by===P){ P.kills++; P.streak++; SFX.kill(); UI.hitmark("k"); _fp.y+=1.2; floatText(_fp,d.h?"헤드샷 아웃!":"아웃!",d.h?"#ffd740":"#ff8a80",24,1.1); }
   onKillCommon(a,by,{w:d.w,head:!!d.h}); }
 function scoreRows(){ const rows=[{n:P?P.name:G.name,k:P?P.kills:0,d:P?P.deaths:0,me:1}]; for(const id in NET.peers){ const p=NET.peers[id]; rows.push({n:p.n,k:p.k||0,d:p.dd||0}); } return rows.sort((a,b)=>b.k-a.k||a.d-b.d); }

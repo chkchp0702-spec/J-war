@@ -29,11 +29,11 @@ function makeAvatar(o){ const g=new THREE.Group(), rb=!!o.robot;
   const label=makeLabel(o.name||"",o.lcol||"#fff"); label.position.y=2.28; g.add(label);
   const bar=new THREE.Sprite(new THREE.SpriteMaterial({color:0x111111,depthWrite:false})); bar.scale.set(1.04,.13,1); bar.position.y=2.02; g.add(bar);
   const fill=new THREE.Sprite(new THREE.SpriteMaterial({color:o.fcol||0xff5252,depthWrite:false})); fill.scale.set(1,.09,1); fill.position.set(0,2.02,0); fill.renderOrder=2; g.add(fill);
-  g.scale.setScalar(o.scale||1);
+  g.scale.setScalar(o.scale||1); g.rotation.order="YXZ"; g.traverse(m=>{ if(m.isMesh&&m!==sh) m.castShadow=true; }); sh.visible=!renderer.shadowMap.enabled;
   return {g,headG,legL,legR,armL,armR,gun,mats:[body,skin,dark],label,bar,fill}; }
 
 function newActor(o){ const a=Object.assign({id:"a"+(++AID),name:"",team:0,pos:V3(),vel:V3(),yaw:0,pitch:0,scale:1,hp:100,maxhp:100,alive:true,ground:false,wall:false,
-    inv:0,slowT:0,hurtT:0,walk:0,kick:0,isBot:false,remote:false,wkey:"rifle",kills:0,deaths:0,streak:0,dmgMul:1,fAcc:0,fT:0,speed:5.2},o);
+    inv:0,slowT:0,hurtT:0,walk:0,kick:0,isBot:false,remote:false,wkey:"rifle",kills:0,deaths:0,streak:0,dmgMul:1,fAcc:0,fT:0,speed:5.7},o);
   a.r=.38*a.scale; a.h=1.75*a.scale;
   if(!o.noAv){ a.av=makeAvatar({col:a.col||0x2979ff,hat:a.hat,robot:a.robot,eye:a.eye,melee:a.melee,wkey:a.wkey,name:a.name,scale:a.scale,lcol:a.lcol,fcol:a.fcol}); a.av.g.position.copy(a.pos); actG.add(a.av.g); }
   ACT.push(a); return a; }
@@ -43,7 +43,8 @@ function hostile(a,b){ return a!==b && a.team!==b.team; }
 function eyeOf(a,out){ return out.set(a.pos.x,a.pos.y+1.52*a.scale,a.pos.z); }
 function dirFrom(yaw,pitch,out){ const cp=Math.cos(pitch); return out.set(-Math.sin(yaw)*cp,Math.sin(pitch),-Math.cos(yaw)*cp); }
 
-function updateAvatar(a,dt){ const v=a.av; if(!v) return; v.g.visible=a.alive&&!(a.inv>0&&Math.floor(a.inv*10)%2===0); if(!a.alive) return;
+function updateAvatar(a,dt){ const v=a.av; if(!v) return; if(!a.alive){ if(a.deadT>0){ a.deadT-=dt; const k=1-a.deadT/.6; v.g.visible=true; v.g.rotation.x=Math.min(1.5,k*2.4); v.g.position.y=a.pos.y-Math.max(0,k-.7)*2.5; v.label.visible=v.bar.visible=v.fill.visible=false; } else v.g.visible=false; return; }
+  v.g.visible=!(a.inv>0&&Math.floor(a.inv*10)%2===0); v.label.visible=true; v.g.rotation.x=0;
   v.g.position.copy(a.pos); v.g.rotation.y=a.yaw; const sp=Math.hypot(a.vel.x,a.vel.z); a.walk+=dt*sp*2.3; const sw=Math.sin(a.walk)*Math.min(1,sp/4)*.75;
   v.legL.rotation.x=sw; v.legR.rotation.x=-sw; v.headG.rotation.x=a.pitch*.7; if(a.kick>0) a.kick=Math.max(0,a.kick-dt*7);
   if(a.melee){ v.armL.rotation.x=-sw+a.kick*2; v.armR.rotation.x=sw+a.kick*2; } else { v.armR.rotation.x=Math.PI/2+a.pitch+a.kick*.25; v.armL.rotation.x=Math.PI/2+a.pitch-.1; v.armL.rotation.z=-.45; }
@@ -64,7 +65,7 @@ function damage(t,amt,by,info){ info=info||{}; if(!t.alive) return;
   if(by===P) hitFeedback(t,amt,info);
   if(t===P) UI.hurt(by,amt);
   if(t.hp<=0) kill(t,by,info); }
-function kill(t,by,info){ t.alive=false; t.hp=0; t.deaths++; t.streak=0; _fp.set(t.pos.x,t.pos.y+1*t.scale,t.pos.z);
+function kill(t,by,info){ t.alive=false; t.hp=0; t.deadT=.6; t.deaths++; t.streak=0; _fp.set(t.pos.x,t.pos.y+1*t.scale,t.pos.z);
   burst(_fp,t.col||0xffffff,16,7,.24,.9,14); burst(_fp,0xffd740,8,5,.14,.7,8);
   if(by&&by!==t){ by.kills++; by.streak++; }
   if(by===P){ SFX.kill(); UI.hitmark("k"); _fp.y+=1.2; floatText(_fp,info&&info.head?"헤드샷 아웃!":"아웃!",info&&info.head?"#ffd740":"#ff8a80",24,1.1); }

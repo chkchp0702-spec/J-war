@@ -21,7 +21,7 @@ const UI = {scr:"home",bT:0,sT:0,hT:0,vg:0,ind:[0,0,0],indI:0,
   hud(dt){ if(!P) return; const hp=clamp(P.hp/P.maxhp,0,1), f=$("hpFill"); f.style.width=(hp*100)+"%"; f.style.background=hp>.5?"linear-gradient(#7CFF6B,#27c93f)":hp>.25?"linear-gradient(#ffe36b,#ffa000)":"linear-gradient(#ff8a80,#e53935)";
     $("hpTxt").textContent=Math.ceil(P.hp)+(P.inv>0?" 🛡️":""); $("dashFill").style.width=(100*(1-clamp(P.dashLeft/P.dashCd,0,1)))+"%";
     $("ammoTxt").innerHTML=P.relT>0?"<small>장전 중…</small>":P.ammo[P.wi]+"<small> / "+magOf(P.wi)+"</small>";
-    const cr=$("cross"), zoomed=camera.fov<50; cr.style.display=zoomed||!P.alive?"none":""; cr.style.setProperty("--g",(5+Math.min(14,Math.hypot(P.vel.x,P.vel.z)*1.1+(P.ground?0:5)+VM.kick*6))+"px"); cr.classList.toggle("on",I.onTarget);
+    const cr=$("cross"), zoomed=camera.fov<40; cr.style.display=zoomed||!P.alive?"none":""; cr.style.setProperty("--g",(5+Math.min(14,Math.hypot(P.vel.x,P.vel.z)*1.1+(P.ground?0:5)+VM.kick*6))+"px"); cr.classList.toggle("on",I.onTarget);
     $("scope").classList.toggle("hide",!zoomed);
     if(UI.hT>0){ UI.hT-=dt; if(UI.hT<=0) $("hitm").className=""; }
     if(UI.bT>0){ UI.bT-=dt; if(UI.bT<=0) $("banner").classList.remove("s"); } if(UI.sT>0){ UI.sT-=dt; if(UI.sT<=0) $("streak").classList.remove("s"); }
@@ -68,6 +68,7 @@ function scrMissions(){ ensureDay(); const h=G.mis.map(x=>{ const m=MISSIONS.fin
 function scrSettings(){ UI.panel("⚙️ 설정",`
   <div class="line"><div class="f"><b>화면 돌리는 빠르기</b><small>${G.set.sens.toFixed(1)}배</small></div><input type="range" min="0.4" max="2.5" step="0.1" value="${G.set.sens}" id="sens"></div>
   <div class="line"><div class="f"><b>자동 발사</b><small>조준점이 적에게 닿으면 알아서 쏴요 (휴대폰 추천)</small></div><button class="btn ${G.set.auto?"y":""}" data-a="tog" data-v="auto">${G.set.auto?"켜짐":"꺼짐"}</button></div>
+  <div class="line"><div class="f"><b>조준 도움</b><small>조준점이 가까운 적 쪽으로 살짝 붙어요</small></div><button class="btn ${G.set.assist?"y":""}" data-a="tog" data-v="assist">${G.set.assist?"켜짐":"꺼짐"}</button></div>
   <div class="line"><div class="f"><b>소리</b></div><button class="btn ${G.set.snd?"y":""}" data-a="tog" data-v="snd">${G.set.snd?"켜짐":"꺼짐"}</button></div>
   <div class="line"><div class="f"><b>그래픽</b><small>버벅이면 '가볍게'로 (다음에 켤 때 적용)</small></div><button class="btn" data-a="tog" data-v="gfx">${G.set.gfx?"선명하게":"가볍게"}</button></div>
   ${M.active?"":`<div class="line"><div class="f"><b>기록 모두 지우기</b><small>코인·무기·등급이 모두 사라져요</small></div><button class="btn r" data-a="wipe">지우기</button></div>`}`,M.active?"pause2":"settings"); }
@@ -126,7 +127,7 @@ let lastT = 0;
 function frame(t){ requestAnimationFrame(frame); const now=t/1000; let dt=lastT?Math.min(.05,now-lastT):.016; lastT=now; if(dt<=0) dt=.001;
   NET.tick(dt);
   if(M.active&&!M.paused){ updateGame(dt); updateVM(dt); updateFX(dt,now); UI.hud(dt); }
-  else if(!M.active){ const a=now*.12, S=W.S; camera.position.set(Math.cos(a)*S*.8,13,Math.sin(a)*S*.8); camera.lookAt(0,1,0); if(camera.fov!==75){ camera.fov=75; camera.updateProjectionMatrix(); } updateFX(dt,now); VM.g.visible=false; }
+  else if(!M.active){ const a=now*.12, S=W.S; camera.position.set(Math.cos(a)*S*.8,13,Math.sin(a)*S*.8); camera.lookAt(0,1,0); { const bf=baseFov(); if(camera.fov!==bf){ camera.fov=bf; camera.updateProjectionMatrix(); } } updateFX(dt,now); VM.g.visible=false; }
   renderer.clear(); renderer.render(scene,camera); if(VM.g.visible&&M.active){ renderer.clearDepth(); renderer.render(vmScene,vmCam); } }
 
 /* ---------- 시작 ---------- */
