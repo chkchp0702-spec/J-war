@@ -2,7 +2,7 @@
 /* ===== J war — 조작 · 내 캐릭터 · 손에 든 총 ===== */
 const I = {mx:0,mz:0,fire:false,zoom:false,jumpQ:false,dashQ:false,keys:{},lookId:-1,moveId:-1,lx:0,ly:0,sx:0,sy:0,btn:{},locked:false,onTarget:false};
 function inGame(){ return M.active&&!M.paused&&$("cards").classList.contains("hide")&&$("panel").classList.contains("hide"); }
-function lookBy(dx,dy){ if(!P) return; const k=.0046*G.set.sens*(camera.fov<40?.38:1)*(1-.45*(I.near||0)); P.yaw-=dx*k; P.pitch=clamp(P.pitch-dy*k,-1.45,1.45); VM.swx+=dx*.0006; VM.swy+=dy*.0006; }
+function lookBy(dx,dy){ if(!P) return; const k=.0046*G.set.sens*(camera.fov<40?.38:1)*(1-.25*(I.near||0)); I.lookT=performance.now(); P.yaw-=dx*k; P.pitch=clamp(P.pitch-dy*k,-1.45,1.45); VM.swx+=dx*.0006; VM.swy+=dy*.0006; }
 
 /* ---------- 터치 ---------- */
 function touchAct(act){ if(act==="jump") I.jumpQ=true; else if(act==="dash") I.dashQ=true; else if(act==="reload") reload(); else if(act==="swap") swapWeapon(); else if(act==="zoom") I.zoom=!I.zoom; else if(act==="slide") I.slideQ=true; else if(act==="knife") knife(); else if(act==="nade") throwNade(); else if(act==="super") superGo(); }
@@ -68,7 +68,8 @@ function aimAssist(dt){ I.near=0; if(!G.set.assist||!P.alive||M.phase!=="play") 
     const a=Math.acos(clamp(_ad.dot(_pd),-1,1)); if(a<ba&&rayWorld(cp,_ad,d)>=d-.1){ ba=a; best=b; _ae.copy(_ad); } }
   if(!best) return; I.near=1-ba/.2; if(ba<.012) return;
   let dy=Math.atan2(-_ae.x,-_ae.z)-P.yaw; while(dy>Math.PI) dy-=6.2832; while(dy<-Math.PI) dy+=6.2832;
-  const r=((I.fire||I.lookId>=0||Math.hypot(I.mx,I.mz)>.2)?1.5:.5)*I.near*dt; P.yaw+=clamp(dy,-r,r); P.pitch+=clamp(Math.asin(clamp(_ae.y,-1,1))-P.pitch,-r,r); }
+  if(performance.now()-(I.lookT||0)<250) return;   /* 손가락으로 돌리는 동안에는 절대 끌어당기지 않음 */
+  const r=((I.fire||Math.hypot(I.mx,I.mz)>.2)?.9:.4)*I.near*dt; P.yaw+=clamp(dy,-r,r); P.pitch+=clamp(Math.asin(clamp(_ae.y,-1,1))-P.pitch,-r,r); }
 function playerFire(){ if(P.knifeOnly){ knife(); return; } const k=P.wkey, w=WEAPONS[k]; if(P.cool>0||P.swT>0||P.relT>0) return;
   if(P.ammo[P.wi]<=0){ reload(); return; }
   if(!(P.supT>0)) P.ammo[P.wi]--; P.cool=w.rate*P.rateMul*(P.supT>0?.6:1); dirFrom(P.yaw,P.pitch,_pd); _po.copy(camera.position);
