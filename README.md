@@ -22,3 +22,8 @@
 2. `js/01-data.js` 의 `VER` 올리고 `PATCH` 맨 앞에 패치 노트 추가
 3. `python3 stamp.py` → `version.json` 과 `index.html` 의 `?v=` 가 VER 로 맞춰짐
 4. commit / push → 열려 있던 게임은 다음에 켤 때 자동으로 새 버전
+
+## 자동 점검·자동 업그레이드
+- `node tools/smoke.js [스크린샷.png]` — 혼자 하는 모드를 모두 잠깐 돌려 오류를 찾음(오류 0개여야 올림)
+- `UPGRADE_LOG.md` — 예약 작업(하루 1번)이 보는 후보 표와 기록
+- 올릴 때는 `git push origin main && git push origin main:gh-pages` (두 가지 모두)
