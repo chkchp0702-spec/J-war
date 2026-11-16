@@ -54,13 +54,13 @@ function updateAvatar(a,dt){ const v=a.av; if(!v) return; if(!a.alive){ if(a.dea
 
 /* ---------- 피해 ---------- */
 const _fp = V3();
-function hitFeedback(t,amt,info){ t.fAcc+=amt; t.hurtT=.12; if(info.head) t.fHead=1;
+function hitFeedback(t,amt,info){ if(P&&!(P.supT>0)) P.sup=Math.min(100,P.sup+amt*.3); t.fAcc+=amt; t.hurtT=.12; if(info.head) t.fHead=1;
   if(performance.now()-t.fT>110){ t.fT=performance.now(); _fp.set(t.pos.x,t.pos.y+1.9*t.scale,t.pos.z); floatText(_fp,String(Math.round(t.fAcc)),t.fHead?"#ffd740":"#fff",t.fHead?22:17,.7); t.fAcc=0;
     if(t.fHead) SFX.head(); else SFX.hit(); UI.hitmark(t.fHead?"h":""); t.fHead=0; } }
 function damage(t,amt,by,info){ info=info||{}; if(!t.alive) return;
   if(t.remote){ if(by===P&&!(t.inv>0)&&M.phase==="play"){ NET.send({t:"hit",to:t.id,d:Math.round(amt*10)/10,h:info.head?1:0,w:info.w||"",s:info.slow||0}); hitFeedback(t,amt,info); } return; }
   if(t.inv>0||M.phase!=="play") return;
-  if(t===P&&by&&by.isBot) amt*=M.botDmg||1;
+  if(t===P&&by&&by.isBot) amt*=M.botDmg||1; else if(M.type==="gun"&&t.isBot&&by&&by.isBot) amt*=.5;
   t.hp-=amt; t.hurtT=.14; t.regenT=4; t.lastBy=by; if(info.slow) t.slowT=Math.max(t.slowT,info.slow);
   if(by&&by!==t&&t.isBot){ const dx=t.pos.x-by.pos.x, dz=t.pos.z-by.pos.z, l=Math.hypot(dx,dz)||1, kb=Math.min(3.5,amt*.05)/t.scale; t.vel.x+=dx/l*kb; t.vel.z+=dz/l*kb; }
   if(by===P) hitFeedback(t,amt,info);
@@ -86,13 +86,13 @@ function shoot(a,wkey,o,dir,opt){ opt=opt||{}; const w=WEAPONS[wkey]; a.kick=1; 
   for(let i=0;i<n;i++){ _d.copy(dir); const sp=w.spread*(opt.sm||1); if(sp>0){ _d.x+=rnd(-sp,sp); _d.y+=rnd(-sp,sp)*.8; _d.z+=rnd(-sp,sp); _d.normalize(); }
     let t=rayWorld(o,_d,w.range), hit=null, head=false;
     for(const b of ACT){ if(!b.alive||!hostile(a,b)) continue; const r=rayActor(o,_d,b,mag); if(r&&r.t<t){ t=r.t; hit=b; head=r.head; } }
-    _e.copy(o).addScaledVector(_d,t); tracer(_m,_e,w.col,w.beam?.07:(wkey==="sniper"?.09:.035),w.beam?.07:.1);
-    if(hit){ if(!opt.visual){ let dmg=w.dmg*(a.dmgMul||1); if(w.pel) dmg*=clamp(1.3-t/w.range,.35,1); if(head) dmg*=HEAD_MUL*(a.headMul||1); damage(hit,dmg,a,{head,w:wkey,slow:w.slow}); }
+    _e.copy(o).addScaledVector(_d,t); tracer(_m,_e,w.col,w.beam?.07:(wkey==="sniper"?.09:.035),w.beam?.07:.1); if(M.type==="paint") paintAt(_e.x,_e.z,w.pel?1.4:2.1,a.team);
+    if(hit){ if(!opt.visual){ let dmg=w.dmg*(a.dmgMul||1)*(opt.dm||1); if(w.pel) dmg*=clamp(1.3-t/w.range,.35,1); if(head) dmg*=HEAD_MUL*(a.headMul||1); damage(hit,dmg,a,{head,w:wkey,slow:w.slow}); }
       burst(_e,head?0xffd740:0xffffff,3,3,.08,.3); if(w.slow) burst(_e,0x80deea,2,2,.1,.4,2); }
     else if(t<w.range) burst(_e,w.col,2,2.5,.07,.25); } }
 function spawnProj(a,wkey,pos,dir,visual){ const w=WEAPONS[wkey]; const m=new THREE.Mesh(UNIT,matB(w.grav?w.col:0xfff176)); if(w.grav) m.scale.set(.26,.26,.26); else m.scale.set(.16,.16,.55); m.position.copy(pos); _e.copy(pos).add(dir); m.lookAt(_e); fxG.add(m);
   PROJ.push({a,wkey,pos,dir,spd:w.proj,life:3.5,m,visual:!!visual,tr:0,grav:w.grav||0}); }
-function explode(p,pt){ const w=WEAPONS[p.wkey]; boomFx(pt,w.splash); SFX.boom(P?clamp(1.1-P.pos.distanceTo(pt)/45,0,1):0);
+function explode(p,pt){ const w=WEAPONS[p.wkey]; boomFx(pt,w.splash); if(M.type==="paint"&&p.a) paintAt(pt.x,pt.z,w.splash*.8,p.a.team); SFX.boom(P?clamp(1.1-P.pos.distanceTo(pt)/45,0,1):0);
   if(P&&P.alive){ const d=P.pos.distanceTo(pt); if(d<14) FX.shake=Math.max(FX.shake,.6*(1-d/14)); }
   for(const b of ACT.slice()){ if(!b.alive) continue; _o2.set(b.pos.x,b.pos.y+.9*b.scale,b.pos.z); const d=_o2.distanceTo(pt); if(d>=w.splash+b.r) continue; const k=1-clamp(d/w.splash,0,1)*.75;
     if(!b.remote&&(b===p.a||!p.visual)){ _o2.sub(pt).normalize(); const self=b===p.a; b.vel.x+=_o2.x*(self?11:8)*k; b.vel.z+=_o2.z*(self?11:8)*k; b.vel.y+=(self?9.5:5)*k; b.ground=false; }

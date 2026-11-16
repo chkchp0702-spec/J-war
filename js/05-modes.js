@@ -11,11 +11,11 @@ function grant(coins,xp,tro){ const lv0=lvOf(G.xp); G.coins+=coins; G.xp+=xp; G.
   if(lv1>lv0){ for(let l=lv0+1;l<=lv1;l++) bonus+=40*l; G.coins+=bonus; } save(); return {coins,xp,tro:tro||0,lvUp:lv1>lv0?lv1:0,bonus}; }
 
 /* ---------- 공통 ---------- */
-function beginMatch(type,map){ clearActors(); clearFX(); buildMap(map); Object.assign(M,{active:true,paused:false,type,map,t:0,kills:0,hs:0,freeze:0,botDmg:1,phase:"play",pt:0});
+function beginMatch(type,map){ clearActors(); clearFX(); paintClear(); buildMap(map); Object.assign(M,{active:true,paused:false,type,map,t:0,kills:0,hs:0,freeze:0,botDmg:1,phase:"play",pt:0});
   resetInput(); UI.showGame(); }
 function stopMatch(){ M.active=false; M.paused=false; M.phase=""; resetInput(); if(document.exitPointerLock) document.exitPointerLock(); }
 function onKillCommon(t,by,info){ UI.feed(by?by.name:"",t.name,info.w&&WEAPONS[info.w]?WEAPONS[info.w].ic:"💥",by===P||t===P);
-  if(by===P){ if(info.w==="knife") bump("knife",1); M.kills++; G.stat.k++; bump("kills",1); if(info.head){ M.hs++; G.stat.hs++; bump("hs",1); }
+  if(by===P){ if(info.w==="knife") bump("knife",1); if(WKEYS.indexOf(info.w)>=0){ G.wk[info.w]=(G.wk[info.w]||0)+1; if(STAR_AT.indexOf(G.wk[info.w])>=0) toast(WEAPONS[info.w].n+" 숙련도 ★"+stars(info.w)+" 달성!"); } if(P.supT<=0) P.sup=Math.min(100,P.sup+12); M.kills++; G.stat.k++; bump("kills",1); if(info.head){ M.hs++; G.stat.hs++; bump("hs",1); }
     bump("streak",P.streak); const s=P.streak; if(s>=2) UI.streak(s===2?"더블 아웃!":s===3?"트리플 아웃!":s===4?"막을 수 없어!":"전설이다!! ×"+s); } }
 function usedNames(){ const u={}; ACT.forEach(a=>u[a.name]=1); return u; }
 function botName(){ const u=usedNames(); const f=BOT_NAMES.filter(n=>!u[n]); return pick(f.length?f:BOT_NAMES); }
@@ -96,8 +96,53 @@ function endOnline(){ const rows=scoreRows(), rank=rows.findIndex(r=>r.me)+1, mu
   const r=grant(30+M.kills*12+(first?60:0),20+M.kills*6,0); first?SFX.win():jingle([523,659,784],.1);
   UI.result({title:first?"1등!":rank+"등",win:first,sub:"친구와 대결 · "+MAPS[M.map].n,lines:[["아웃시킨 적",M.kills],["헤드샷",M.hs]],r,rows,again:"lobby"}); }
 
+/* ---------- 🔁 총 바꾸기 (아웃시킬 때마다 총이 바뀜, 마지막은 에너지 검) ---------- */
+function setPlayerWeapon(k){ P.eq=[k,k]; P.wi=0; P.wkey=k; P.ammo=[magOf(0),magOf(1)]; P.relT=0; P.swT=.2; I.zoom=false; buildVM(k); UI.weapon(); }
+function ffaRespawn(a){ const m=MAPS[M.map]; let best=m.ffa[0], bd=-1; for(const s of m.ffa){ let d=1e9; for(const o of ACT) if(o!==a&&o.alive) d=Math.min(d,Math.hypot(o.pos.x-s[0],o.pos.z-s[1])); d+=Math.random()*6; if(d>bd){ bd=d; best=s; } }
+  placeActor(a,best[0],best[1],Math.atan2(best[0],best[1])); a.inv=1.5; }
+function startGun(){ const map=pick(MAP_KEYS), m=MAPS[map]; beginMatch("gun",map); const skill=clamp(.1+G.tro/700,.1,.9), cols=[0xff5252,0xffa726,0xab47bc,0x26a69a,0x8d6e63];
+  Object.assign(M,{botDmg:lerp(.4,.9,skill),onKill:gunKill,sbT:0,win:false}); spawnPlayer(m.ffa[0][0],m.ffa[0][1],Math.atan2(m.ffa[0][0],m.ffa[0][1]),"me"); P.gi=0; setPlayerWeapon(GG[0]);
+  for(let i=1;i<=5;i++){ const b=addBot({name:botName(),team:"b"+i,col:cols[i-1],lcol:"#ff8a80",wkey:GG[0],skill:skill*rnd(.8,1.1),hat:Math.floor(rnd(0,HATS.length))}); b.gi=0; placeActor(b,m.ffa[i][0],m.ffa[i][1],Math.atan2(m.ffa[i][0],m.ffa[i][1])); }
+  M.freeze=4.2; UI.score("","",1); UI.banner("🔁 총 바꾸기","아웃시킬 때마다 총이 바뀌어요. 마지막은 에너지 검!",1.6); }
+function gunKill(t,by,info){ onKillCommon(t,by,info); t.respT=2.2; if(!by||by===t||M.phase!=="play") return; by.gi++; const N=GG.length;
+  if(by===P){ if(P.gi>N){ M.win=true; M.phase="over"; M.pt=1.6; UI.banner("🏆 우승!","",1.6); return; } SFX.up();
+    if(P.gi===N){ P.knifeOnly=true; setPlayerWeapon("knife"); UI.banner("마지막 단계!","🗡️ 에너지 검으로 아웃시키면 우승",2.2); }
+    else { setPlayerWeapon(GG[P.gi]); UI.banner(WEAPONS[GG[P.gi]].ic+" "+WEAPONS[GG[P.gi]].n,(P.gi+1)+" / "+(N+1)+" 단계",1.1); } }
+  else { if(by.gi>N){ M.win=false; M.phase="over"; M.pt=1.6; UI.banner(by.name+" 우승","다음엔 내가 우승!",1.6); return; } by.wkey=GG[Math.min(by.gi,N-1)]; by.ammo=WEAPONS[by.wkey].mag; by.relT=0; by.pref=PREF[by.wkey]||11; } }
+function updateGun(dt){ if(M.phase==="over"){ M.pt-=dt; if(M.pt<=0) endGun(); return; } const N=GG.length;
+  for(const a of ACT){ if(!a.alive){ a.respT-=dt; if(a.respT<=0) ffaRespawn(a); } }
+  M.sbT-=dt; if(M.sbT<=0){ M.sbT=.4; UI.board(ACT.map(a=>({n:a.name,k:Math.min(a.gi,N)+1,me:a===P})).sort((x,y)=>y.k-x.k)); UI.timer(-1,"내 총 "+(Math.min(P.gi,N)+1)+" / "+(N+1)); } }
+function endGun(){ const win=M.win, st=Math.min(P.gi,GG.length)+1; stopMatch(); G.stat.games++; bump("games",1); if(win) G.stat.win++;
+  const r=grant(win?120:30+st*5,(win?50:20)+M.kills*5,win?6:0); win?SFX.win():SFX.lose();
+  UI.result({title:win?"우승!":"아쉽다…",win,sub:"총 바꾸기 · "+st+" / "+(GG.length+1)+" 단계",lines:[["아웃시킨 적",M.kills],["헤드샷",M.hs]],r,again:"gun"}); }
+
+/* ---------- 🎨 색칠 대결 (3대3, 바닥을 더 많이 칠한 팀이 승리) ---------- */
+const PAINT = {g:null,cnt:[0,0],cv:null,cx:null,tex:null,mesh:null,dirty:false,free:1,col:["#2979ff","#ff9100"]};
+function paintClear(){ if(PAINT.mesh){ fxG.remove(PAINT.mesh); PAINT.mesh.geometry.dispose(); PAINT.mesh.material.dispose(); PAINT.tex.dispose(); PAINT.mesh=null; } PAINT.g=null; }
+function paintInit(){ const n=W.gn; PAINT.g=new Uint8Array(n*n); PAINT.cnt=[0,0]; PAINT.free=0; for(let i=0;i<n*n;i++) if(!W.grid[i]) PAINT.free++;
+  const c=PAINT.cv=document.createElement("canvas"); c.width=c.height=n*4; PAINT.cx=c.getContext("2d"); PAINT.tex=new THREE.CanvasTexture(c);
+  PAINT.mesh=new THREE.Mesh(new THREE.PlaneGeometry(2*W.S,2*W.S),new THREE.MeshBasicMaterial({map:PAINT.tex,transparent:true,opacity:.8,depthWrite:false})); PAINT.mesh.rotation.x=-Math.PI/2; PAINT.mesh.position.y=.03; fxG.add(PAINT.mesh); }
+function paintAt(x,z,r,team){ if(!PAINT.g||(team!==0&&team!==1)) return; const n=W.gn, g=PAINT.g, cx=x+W.S, cz=z+W.S, x0=Math.max(0,Math.floor(cx-r)), x1=Math.min(n-1,Math.floor(cx+r)), z0=Math.max(0,Math.floor(cz-r)), z1=Math.min(n-1,Math.floor(cz+r));
+  for(let Z=z0;Z<=z1;Z++) for(let X=x0;X<=x1;X++){ const dx=X+.5-cx, dz=Z+.5-cz; if(dx*dx+dz*dz>r*r) continue; const k=Z*n+X; if(W.grid[k]) continue; const o=g[k]; if(o===team+1) continue; if(o) PAINT.cnt[o-1]--; g[k]=team+1; PAINT.cnt[team]++; }
+  const c=PAINT.cx; c.fillStyle=PAINT.col[team]; c.beginPath(); c.arc(cx*4,cz*4,r*4,0,6.2832); c.fill(); PAINT.dirty=true; }
+function paintMul(a){ if(M.type!=="paint"||!PAINT.g) return 1; const n=W.gn, v=PAINT.g[clamp(Math.floor(a.pos.z+W.S),0,n-1)*n+clamp(Math.floor(a.pos.x+W.S),0,n-1)]; return v===a.team+1?1.15:v?.85:1; }
+function startPaint(){ const map=pick(MAP_KEYS), m=MAPS[map]; beginMatch("paint",map); paintInit(); const skill=clamp(.1+G.tro/700,.1,.9), wp=botWeapons(skill), order=[1,0,2];
+  Object.assign(M,{botDmg:lerp(.42,.95,skill),onKill:paintKill,rt:90,wt:0,win:false}); spawnPlayer(m.t0[1][0],m.t0[1][1],0,0); P.home=m.t0[1];
+  for(let i=1;i<3;i++){ const s=m.t0[order[i]], b=addBot({name:botName(),team:0,col:0x2979ff,lcol:"#80d8ff",wkey:pick(wp),skill,hat:Math.floor(rnd(0,HATS.length))}); b.home=s; placeActor(b,s[0],s[1],0); }
+  for(let i=0;i<3;i++){ const s=m.t0[order[i]], b=addBot({name:botName(),team:1,col:0xff9100,lcol:"#ffcc80",fcol:0xff9100,wkey:pick(wp),skill,hat:Math.floor(rnd(0,HATS.length))}); b.home=[-s[0],-s[1]]; placeActor(b,b.home[0],b.home[1],Math.PI); }
+  M.freeze=4.2; UI.score("0%","0%"); UI.timer(M.rt); UI.banner("🎨 색칠 대결","바닥을 파란색으로 더 많이 칠하면 승리!",1.8); }
+function paintKill(t,by,info){ onKillCommon(t,by,info); t.respT=3; if(by&&by!==t) paintAt(t.pos.x,t.pos.z,5,by.team); if(t===P) UI.banner("아웃!","3초 뒤 다시 등장",2.4); }
+function updatePaint(dt){ if(M.phase==="over"){ M.pt-=dt; if(M.pt<=0) endPaint(); return; }
+  for(const a of ACT){ if(!a.alive){ a.respT-=dt; if(a.respT<=0){ placeActor(a,a.home[0],a.home[1],a.team===0?0:Math.PI); a.inv=1.5; } } }
+  if(M.freeze>0) return; M.rt-=dt; UI.timer(M.rt); M.wt-=dt;
+  if(M.wt<=0){ M.wt=.15; for(const a of ACT) if(a.alive&&a.pos.y<.3) paintAt(a.pos.x,a.pos.z,1.6,a.team); const f=PAINT.free||1; UI.score(Math.round(PAINT.cnt[0]/f*100)+"%",Math.round(PAINT.cnt[1]/f*100)+"%"); if(PAINT.dirty){ PAINT.tex.needsUpdate=true; PAINT.dirty=false; } }
+  if(M.rt<=0){ M.win=PAINT.cnt[0]>=PAINT.cnt[1]; M.phase="over"; M.pt=2; UI.banner(M.win?"우리 팀 승리!":"상대 팀 승리","",2); } }
+function endPaint(){ const win=M.win, f=PAINT.free||1, a=Math.round(PAINT.cnt[0]/f*100), b=Math.round(PAINT.cnt[1]/f*100); stopMatch(); G.stat.games++; bump("games",1); if(win) G.stat.win++;
+  const r=grant(win?90:30,(win?40:15)+M.kills*4,win?6:-3); win?SFX.win():SFX.lose();
+  UI.result({title:win?"승리!":"패배…",win,sub:"색칠 대결 · 우리 "+a+"% : 상대 "+b+"%",lines:[["아웃시킨 적",M.kills],["헤드샷",M.hs]],r,again:"paint"}); }
+
 /* ---------- 매 프레임 ---------- */
 function updateGame(dt){ M.t+=dt; tickFreeze(dt); updatePlayer(dt);
   for(let i=0;i<ACT.length;i++){ const a=ACT[i]; if(a.isBot) updateBot(a,dt); else if(a.remote) updateRemote(a,dt); updateAvatar(a,dt); }
   updateProj(dt); updatePicks(dt);
-  if(M.type==="duel") updateDuel(dt); else if(M.type==="wave") updateWave(dt); else if(M.type==="online") updateOnline(dt); }
+  if(M.type==="duel") updateDuel(dt); else if(M.type==="wave") updateWave(dt); else if(M.type==="online") updateOnline(dt); else if(M.type==="gun") updateGun(dt); else if(M.type==="paint") updatePaint(dt); }

@@ -2,7 +2,7 @@
 /* ===== J war — 화면(UI) · 메뉴 · 메인 루프 ===== */
 const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const UI = {scr:"home",bT:0,sT:0,hT:0,vg:0,ind:[0,0,0],indI:0,
-  showGame(){ $("menu").classList.add("hide"); $("panel").classList.add("hide"); $("hud").classList.remove("hide"); $("cards").classList.add("hide"); $("feed").innerHTML=""; $("board").classList.toggle("hide",M.type!=="online");
+  showGame(){ $("menu").classList.add("hide"); $("panel").classList.add("hide"); $("hud").classList.remove("hide"); $("cards").classList.add("hide"); $("feed").innerHTML=""; $("board").classList.toggle("hide",M.type!=="online"&&M.type!=="gun");
     $("banner").classList.remove("s"); $("streak").classList.remove("s"); UI.scr="game"; UI.weapon(); UI.vg=0; },
   showMenu(){ $("hud").classList.add("hide"); $("panel").classList.add("hide"); $("menu").classList.remove("hide"); UI.scr="home"; UI.home(); },
   panel(title,html,scr){ $("pTitle").textContent=title; $("pBody").innerHTML=html; $("pCoin").textContent="🪙 "+G.coins; $("panel").classList.remove("hide"); UI.scr=scr||"panel"; $("pBody").scrollTop=0; },
@@ -22,7 +22,7 @@ const UI = {scr:"home",bT:0,sT:0,hT:0,vg:0,ind:[0,0,0],indI:0,
     $("hpTxt").textContent=Math.ceil(P.hp)+(P.inv>0?" 🛡️":""); $("dashFill").style.width=(100*(1-clamp(P.dashLeft/P.dashCd,0,1)))+"%";
     $("ammoTxt").innerHTML=P.relT>0?"<small>장전 중…</small>":P.ammo[P.wi]+"<small> / "+magOf(P.wi)+"</small>";
     const cr=$("cross"), zoomed=camera.fov<40; cr.style.display=zoomed||!P.alive?"none":""; cr.style.setProperty("--g",(5+Math.min(14,Math.hypot(P.vel.x,P.vel.z)*1.1+(P.ground?0:5)+VM.kick*6))+"px"); cr.classList.toggle("on",I.onTarget);
-    $("scope").classList.toggle("hide",!zoomed); $("btnNade").style.opacity=P.nadeCd>0?.3:1; $("btnKnife").style.opacity=P.knifeCd>0?.4:1; $("btnSlide").style.opacity=P.slideCd>0||P.slideT>0?.4:1; $("btnDash").style.opacity=P.dashLeft>0?.4:1;
+    $("scope").classList.toggle("hide",!zoomed); $("supFill").style.width=(P.supT>0?P.supT/6*100:P.sup)+"%"; $("btnSuper").classList.toggle("rdy",P.sup>=100&&P.supT<=0); $("supGlow").style.opacity=P.supT>0?1:0; $("btnNade").style.opacity=P.nadeCd>0?.3:1; $("btnKnife").style.opacity=P.knifeCd>0?.4:1; $("btnSlide").style.opacity=P.slideCd>0||P.slideT>0?.4:1; $("btnDash").style.opacity=P.dashLeft>0?.4:1;
     if(UI.hT>0){ UI.hT-=dt; if(UI.hT<=0) $("hitm").className=""; }
     if(UI.bT>0){ UI.bT-=dt; if(UI.bT<=0) $("banner").classList.remove("s"); } if(UI.sT>0){ UI.sT-=dt; if(UI.sT<=0) $("streak").classList.remove("s"); }
     UI.vg=Math.max(0,UI.vg-dt*1.2); $("vign").style.opacity=Math.max(UI.vg,hp<.3&&P.alive?.35:0); $("frost").style.opacity=P.slowT>0?.8:0;
@@ -52,7 +52,7 @@ const UI = {scr:"home",bT:0,sT:0,hT:0,vg:0,ind:[0,0,0],indI:0,
 /* ---------- 메뉴 화면들 ---------- */
 function statBar(l,v){ return `<div>${l}<u><s style="width:${clamp(v,4,100)}%"></s></u></div>`; }
 function scrArmory(){ const h=WKEYS.map(k=>{ const w=WEAPONS[k], own=G.own[k], e0=G.eq[0]===k, e1=G.eq[1]===k;
-    return `<div class="item ${e0||e1?"on":""}"><div class="ic">${w.ic}</div><h4>${w.n}</h4><div>${w.desc}</div><div class="bars">${statBar("피해",w.dmg*(w.pel||1)*1.05)}${statBar("연사",8/w.rate/1.6)}${statBar("탄창",w.mag/1.2)}</div>
+    const st=stars(k); return `<div class="item ${e0||e1?"on":""}"><div class="ic">${w.ic}</div><h4>${w.n}</h4><div>${w.desc}</div><div style="color:#ffd740">${"★".repeat(st)}${"☆".repeat(5-st)} <small style="color:#fff;opacity:.7">${G.wk[k]||0} 아웃</small></div><div class="bars">${statBar("피해",w.dmg*(w.pel||1)*1.05)}${statBar("연사",8/w.rate/1.6)}${statBar("탄창",w.mag/1.2)}</div>
       <div class="rowb">${own?`<button class="btn ${e0?"y":""}" data-a="eq" data-v="0:${k}">${e0?"✔ 주무기":"주무기"}</button><button class="btn ${e1?"y":""}" data-a="eq" data-v="1:${k}">${e1?"✔ 보조":"보조"}</button>`
       :`<button class="btn g ${G.coins<w.cost?"off":""}" data-a="buyW" data-v="${k}">🪙 ${w.cost} 사기</button>`}</div></div>`; }).join("");
   UI.panel("🔫 무기고",`<div class="grid">${h}</div>`,"armory"); }
@@ -76,7 +76,7 @@ function scrPatch(){ G.seenVer=VER; save(); UI.panel("📜 패치 노트",PATCH.
 function scrHelp(){ UI.panel("❓ 조작법",`
   <div class="line"><div class="f"><b>📱 휴대폰 · 태블릿</b><small style="font-size:13px;opacity:1;line-height:1.7">왼쪽 화면을 끌면 이동 · 오른쪽 화면을 끌면 둘러보기<br>🔥 발사(누른 채 끌면 조준도 됨) · 점프(공중에서 한 번 더!) · 대시 · 슬라이드 · 🗡️ 검 · 💣 폭탄<br>저격총은 '조준'을 누르면 확대돼요</small></div></div>
   <div class="line"><div class="f"><b>💻 컴퓨터</b><small style="font-size:13px;opacity:1;line-height:1.7">WASD 이동 · 마우스 조준 · 왼쪽 클릭 발사 · 오른쪽 클릭 확대<br>스페이스 점프 · Shift 대시 · C 슬라이드 · F 검 · G 폭탄 · R 장전 · Q 무기 교체 · Esc 멈춤</small></div></div>
-  <div class="line"><div class="f"><b>💡 꿀팁</b><small style="font-size:13px;opacity:1;line-height:1.7">머리를 맞히면 피해가 1.6배! · 노란 점프대를 밟으면 높이 날아요<br>4초 동안 안 맞으면 체력이 저절로 차요 · 로켓이나 폭탄을 발밑에 터뜨리면 높이 점프!<br>달리다 슬라이드 → 바로 점프하면 훨씬 멀리 가요 · 적 등 뒤에서 검으로 베면 한 방!</small></div></div>`,"help"); }
+  <div class="line"><div class="f"><b>💡 꿀팁</b><small style="font-size:13px;opacity:1;line-height:1.7">머리를 맞히면 피해가 1.6배! · 노란 점프대를 밟으면 높이 날아요<br>4초 동안 안 맞으면 체력이 저절로 차요 · 로켓이나 폭탄을 발밑에 터뜨리면 높이 점프!<br>적을 맞히면 ⭐ 필살기 게이지가 차요 (컴퓨터는 E) · 달리다 슬라이드 → 바로 점프하면 훨씬 멀리 가요 · 적 등 뒤에서 검으로 베면 한 방!</small></div></div>`,"help"); }
 function scrDuel(){ const t=tierOf(G.tro), nx=TIERS[TIERS.indexOf(t)+1];
   UI.panel("⚔️ 결투",`<div style="text-align:center;font-size:14px">내 등급 <b style="color:${t.c}">🏆 ${G.tro} ${t.n}</b>${nx?` · 다음 등급 ${nx.n}까지 ${nx.t-G.tro}`:""}<br><small style="opacity:.75">먼저 3판을 이기면 승리! 등급이 오를수록 봇이 똑똑해져요.</small></div>
   <div class="modes">${[1,2,3].map(n=>`<button class="mode" data-a="duel" data-v="${n}"><b>${n===1?"🧍":n===2?"🧑‍🤝‍🧑":"👨‍👩‍👦"}</b>${n} 대 ${n}<small>${n===1?"나 혼자 승부":"봇 동료 "+(n-1)+"명과 함께"}</small><small>승리 🪙 ${50+25*n} · 🏆 +${10+2*n}</small></button>`).join("")}</div>`,"duel"); }
@@ -92,7 +92,7 @@ function scrPause(){ UI.panel(M.type==="online"?"메뉴 (대결은 계속돼요)
 const UIA = {
   back(){ if(UI.scr==="lobby"){ NET.leave(); UI.showMenu(); } else if(UI.scr==="pause") UIA.resume(); else if(UI.scr==="pause2") scrPause(); else if(UI.scr==="name"&&!G.name) return; else if(UI.scr==="result") UIA.home(); else { $("panel").classList.add("hide"); UI.scr="home"; UI.home(); } },
   home(){ if(NET.on) NET.leave(); UI.showMenu(); },
-  duelMenu(){ scrDuel(); }, duel(v){ startDuel(+v||1); }, wave(){ startWave(); },
+  duelMenu(){ scrDuel(); }, gun(){ startGun(); }, paint(){ startPaint(); }, duel(v){ startDuel(+v||1); }, wave(){ startWave(); },
   online(){ scrOnline(""); }, armory(){ scrArmory(); }, skins(){ UI.selS=UI.selH=null; scrSkins(); }, missions(){ scrMissions(); }, settings(){ scrSettings(); }, patch(){ scrPatch(); UI.home(); }, help(){ scrHelp(); }, name(){ scrName(false); },
   setname(){ const v=$("nameIn").value.trim().slice(0,8); if(!v){ toast("이름을 적어 주세요"); return; } G.name=v; save(); $("panel").classList.add("hide"); UI.scr="home"; UI.home(); if(UI.pendingRoom){ const c=UI.pendingRoom; UI.pendingRoom=""; UIA.enter(c); } },
   buyW(k){ const w=WEAPONS[k]; if(G.coins<w.cost){ toast("코인이 "+(w.cost-G.coins)+" 모자라요"); return; } G.coins-=w.cost; G.own[k]=1; save(); SFX.coin(); toast(w.n+" 을(를) 얻었어요!"); scrArmory(); },
@@ -106,7 +106,7 @@ const UIA = {
   resume(){ M.paused=false; $("panel").classList.add("hide"); UI.scr="game"; lastT=0; },
   quit(){ const on=M.type==="online"; stopMatch(); if(on) NET.leave(); UI.showMenu(); },
   card(id){ pickCard(id); },
-  again(v){ if(v==="wave") startWave(); else if(v==="lobby"){ if(NET.on){ UI.panel("🌐 대결 방","","lobby"); UI.lobby(); } else UIA.online(); } else startDuel(+v.split(":")[1]||1); },
+  again(v){ if(v==="gun") startGun(); else if(v==="paint") startPaint(); else if(v==="wave") startWave(); else if(v==="lobby"){ if(NET.on){ UI.panel("🌐 대결 방","","lobby"); UI.lobby(); } else UIA.online(); } else startDuel(+v.split(":")[1]||1); },
   mkroom(){ UIA.enter(String(Math.floor(1000+Math.random()*9000))); },
   joinroom(){ const v=$("roomIn").value.replace(/\D/g,""); if(v.length!==4){ toast("방 번호 4자리를 넣어 주세요"); return; } UIA.enter(v); },
   enter(code){ if(!G.name){ UI.pendingRoom=code; scrName(true); return; } if(!/^https?:/.test(location.protocol)&&!NET.FAKE){ toast("같이 하기는 게임 주소로 열었을 때만 돼요"); return; } NET.joinRoom(code); UI.lmap=UI.lmap||"toy"; UI.panel("🌐 대결 방","","lobby"); UI.lobby(); },

@@ -91,7 +91,7 @@ body.touch .tb{display:flex}
 /* ---------- 메뉴 ---------- */
 #menu{position:fixed;inset:0;touch-action:manipulation;display:flex;align-items:stretch;background:linear-gradient(90deg,rgba(8,12,34,.93) 0,rgba(8,12,34,.75) 55%,rgba(8,12,34,.25) 100%)}
 #home{flex:1;display:flex;padding:14px max(18px,env(safe-area-inset-right)) 12px max(18px,env(safe-area-inset-left));gap:18px}
-#homeL{width:300px;display:flex;flex-direction:column;justify-content:center;gap:9px}
+#homeL{width:350px;display:flex;flex-direction:column;justify-content:center;gap:9px}
 #logo{font-size:58px;font-weight:900;font-style:italic;letter-spacing:-2px;line-height:1;background:linear-gradient(#fff36b,#ff8a00);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 0 #7a2e00)}
 #logo span{color:#40c4ff;-webkit-text-fill-color:#40c4ff}
 #tag{font-size:13px;opacity:.85;margin-bottom:4px}
@@ -99,7 +99,8 @@ body.touch .tb{display:flex}
 .big small{display:block;font-size:11px;font-weight:700;opacity:.9}
 .big b{font-size:26px}
 .big:active,.btn:active,.tile:active{transform:translateY(3px);box-shadow:none}
-.c1{background:linear-gradient(#ff7a59,#e53935)}.c2{background:linear-gradient(#b388ff,#6a3de8)}.c3{background:linear-gradient(#40c4ff,#1976d2)}
+.c1{background:linear-gradient(#ff7a59,#e53935)}.c2{background:linear-gradient(#b388ff,#6a3de8)}.c3{background:linear-gradient(#40c4ff,#1976d2)}.c4{background:linear-gradient(#ffd54f,#f57c00)}.c5{background:linear-gradient(#69f0ae,#00897b)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.big.sm{font-size:15px;padding:8px 9px;gap:7px}.big.sm b{font-size:21px}.big.sm small{font-size:10px}
 #homeR{flex:1;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between}
 #me{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .chip{background:rgba(0,0,0,.5);border-radius:12px;padding:5px 11px;font-weight:900;font-size:14px;border:1px solid rgba(255,255,255,.2)}
@@ -137,19 +138,24 @@ table.sb{width:100%;border-collapse:collapse;font-size:15px}table.sb td{padding:
 #rot b{font-size:60px}
 @media (orientation:portrait) and (max-width:700px){#rot{display:flex}}
 @media (max-height:360px){#logo{font-size:44px}.big{padding:8px 12px;font-size:16px}.tile{height:58px}}
+#supBar{height:7px;margin-top:3px;border-radius:4px;background:rgba(0,0,0,.5);overflow:hidden}#supFill{height:100%;width:0;background:linear-gradient(90deg,#ffd740,#ff9100)}
+#supGlow{position:absolute;inset:0;box-shadow:inset 0 0 60px 8px rgba(255,200,0,.5);opacity:0;transition:opacity .2s}
+#btnSuper{right:max(30px,env(safe-area-inset-right));bottom:238px;width:54px;height:54px;font-size:24px;opacity:.25}
+#btnSuper.rdy{opacity:1;background:rgba(255,193,7,.75);border-color:#fff;animation:pulse .7s infinite alternate}
+@keyframes pulse{to{transform:scale(1.15)}}
 </style>
 </head>
 <body>
 <canvas id="gl"></canvas>
 
 <div id="hud" class="hide">
-  <div id="vign"></div><div id="frost"></div>
+  <div id="vign"></div><div id="frost"></div><div id="supGlow"></div>
   <div id="scope" class="hide"></div>
   <div id="floats"></div>
   <div id="cross" style="--g:6px"><i></i><i></i><i></i><i></i><i></i></div>
   <div id="hitm"></div>
   <div id="dmgInd"><b></b><b></b><b></b></div>
-  <div id="hpBox"><div id="hpBar"><div id="hpFill"></div><div id="hpTxt">100</div></div><div id="dashBar"><div id="dashFill"></div></div></div>
+  <div id="hpBox"><div id="hpBar"><div id="hpFill"></div><div id="hpTxt">100</div></div><div id="dashBar"><div id="dashFill"></div></div><div id="supBar"><div id="supFill"></div></div></div>
   <button id="btnPause" class="tb" style="display:flex;border-radius:10px" data-a="pause">≡</button>
   <div id="board" class="hide"></div>
   <div id="top"><span class="sc" id="scL">0</span><span id="timer">0:00</span><span class="sc r" id="scR">0</span></div>
@@ -167,6 +173,7 @@ table.sb{width:100%;border-collapse:collapse;font-size:15px}table.sb td{padding:
   <div class="tb" id="btnSlide" data-t="slide">슬라<br>이드</div>
   <div class="tb" id="btnKnife" data-t="knife">🗡️</div>
   <div class="tb" id="btnNade" data-t="nade">💣</div>
+  <div class="tb" id="btnSuper" data-t="super">⭐</div>
   <div id="cards" class="hide"></div>
 </div>
 
@@ -175,8 +182,10 @@ table.sb{width:100%;border-collapse:collapse;font-size:15px}table.sb td{padding:
     <div id="homeL">
       <div><div id="logo">J <span>war</span></div><div id="tag">쏘고, 뛰고, 대시! 혼자서도 친구와도</div></div>
       <button class="big c1" data-a="duelMenu"><b>⚔️</b><span>결투<small>봇과 1대1 · 2대2 · 3대3</small></span></button>
-      <button class="big c2" data-a="wave"><b>🤖</b><span>로봇 웨이브<small>몰려오는 로봇을 막아라</small></span></button>
-      <button class="big c3" data-a="online"><b>🌐</b><span>친구와 대결<small>방 번호로 같이 하기</small></span></button>
+      <div class="g2"><button class="big sm c4" data-a="gun"><b>🔁</b><span>총 바꾸기<small>아웃마다 새 총</small></span></button>
+      <button class="big sm c5" data-a="paint"><b>🎨</b><span>색칠 대결<small>3대3 바닥 칠하기</small></span></button>
+      <button class="big sm c2" data-a="wave"><b>🤖</b><span>로봇 웨이브<small>로봇을 막아라</small></span></button>
+      <button class="big sm c3" data-a="online"><b>🌐</b><span>친구와 대결<small>방 번호로 같이</small></span></button></div>
     </div>
     <div id="homeR">
       <div id="me"></div>
@@ -197,12 +206,12 @@ table.sb{width:100%;border-collapse:collapse;font-size:15px}table.sb td{padding:
 <div id="rot"><b>📱↪️</b>휴대폰을 가로로 돌려 주세요</div>
 
 <script src="three.min.js"></script>
-<script src="js/01-data.js?v=3"></script>
-<script src="js/02-core.js?v=3"></script>
-<script src="js/03-actors.js?v=3"></script>
-<script src="js/04-player.js?v=3"></script>
-<script src="js/05-modes.js?v=3"></script>
-<script src="js/06-net.js?v=3"></script>
-<script src="js/07-ui.js?v=3"></script>
+<script src="js/01-data.js?v=4"></script>
+<script src="js/02-core.js?v=4"></script>
+<script src="js/03-actors.js?v=4"></script>
+<script src="js/04-player.js?v=4"></script>
+<script src="js/05-modes.js?v=4"></script>
+<script src="js/06-net.js?v=4"></script>
+<script src="js/07-ui.js?v=4"></script>
 </body>
 </html>

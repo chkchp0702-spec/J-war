@@ -8,7 +8,7 @@ const V3 = (x,y,z) => new THREE.Vector3(x||0,y||0,z||0);
 /* ---------- 저장 ---------- */
 const SAVE_KEY = "jwar-save-1";
 function defSave(){ return {name:"",coins:0,xp:0,tro:0,own:{pistol:1,rifle:1},eq:["rifle","pistol"],skin:0,hat:0,ownSkin:{0:1},ownHat:{0:1},
-  best:{wave:0,kills:0},stat:{k:0,hs:0,win:0,games:0},day:"",dayc:{},mis:[],set:{sens:1,auto:TOUCH?1:0,assist:TOUCH?1:0,snd:1,gfx:1},id:Math.random().toString(36).slice(2,10),seenVer:0}; }
+  best:{wave:0,kills:0},stat:{k:0,hs:0,win:0,games:0},wk:{},day:"",dayc:{},mis:[],set:{sens:1,auto:TOUCH?1:0,assist:TOUCH?1:0,snd:1,gfx:1},id:Math.random().toString(36).slice(2,10),seenVer:0}; }
 let G = defSave();
 try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)||"null"); if(s){ const d=defSave(); G=Object.assign(d,s); G.set=Object.assign(defSave().set,s.set||{}); G.best=Object.assign({wave:0,kills:0},s.best||{}); G.stat=Object.assign({k:0,hs:0,win:0,games:0},s.stat||{}); } }catch(e){}
 function save(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(G)); }catch(e){} }

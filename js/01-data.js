@@ -1,6 +1,6 @@
 "use strict";
 /* ===== J war — 데이터 (무기 · 맵 · 임무 · 패치 노트) ===== */
-const VER = 3;
+const VER = 4;
 
 /* 무기: dmg 한 발 피해, rate 발사 간격(초), mag 탄창, rel 장전(초), spread 퍼짐, range 사거리 */
 const WEAPONS = {
@@ -16,9 +16,14 @@ const WEAPONS = {
 };
 const WKEYS = Object.keys(WEAPONS);
 /* 늘 들고 다니는 것: 에너지 검(근접) · 폭탄(던지기) — 무기고에는 안 나옴 */
-WEAPONS.knife   = {n:"에너지 검", ic:"🗡️", dmg:55, col:0x40c4ff, len:.3, range:3};
+WEAPONS.knife   = {n:"에너지 검", ic:"🗡️", dmg:55, col:0x40c4ff, len:.3, range:3, mag:1, rel:1, rate:.5, spread:0};
 WEAPONS.grenade = {n:"폭탄", ic:"💣", dmg:95, proj:19, splash:5.2, grav:16, col:0x66bb6a, len:.3, range:60, spread:0};
 const HEAD_MUL = 1.6;
+/* 무기 숙련도: 그 무기로 아웃시킨 수에 따라 별 0~5개 (별 하나에 피해 +2%, 별 5개면 황금 총) */
+const STAR_AT = [10,30,70,150,300];
+function stars(k){ const n=(G.wk&&G.wk[k])||0; let s=0; for(const t of STAR_AT) if(n>=t) s++; return s; }
+/* 총 바꾸기 모드의 총 순서 (마지막은 에너지 검) */
+const GG = ["pistol","smg","rifle","shotgun","ice","sniper","laser","rocket","minigun"];
 
 /* 꾸미기 */
 const SKINS = [
@@ -104,6 +109,12 @@ const MAP_KEYS = Object.keys(MAPS);
 
 /* 패치 노트 (새 버전은 맨 앞에 추가) */
 const PATCH = [
+  {v:4, d:"2026-11-16", t:"새 모드 2개 + 필살기 + 무기 숙련도", l:[
+    "🔁 총 바꾸기: 아웃시킬 때마다 총이 바뀌어요. 모든 총을 써 볼 수 있고, 마지막은 에너지 검!",
+    "🎨 색칠 대결: 3대3으로 바닥을 우리 팀 색으로 더 많이 칠하면 승리. 우리 색 위에서는 빨라져요",
+    "⭐ 필살기: 적을 맞히면 게이지가 차요. 가득 차면 6초 동안 무한 탄창 + 초고속 연사",
+    "★ 무기 숙련도: 같은 총으로 많이 아웃시키면 별이 붙고 더 세져요. 별 5개면 황금 총",
+  ]},
   {v:3, d:"2026-11-16", t:"슬라이딩 · 검 · 폭탄 + 손맛", l:[
     "슬라이딩: 달리다가 누르면 쭉 미끄러져요. 미끄러지다 점프하면 더 멀리! (슬라이드 점프)",
     "에너지 검: 가까운 적을 베어요. 등 뒤에서 베면 한 방 (백스탭)",
