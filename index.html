@@ -75,8 +75,11 @@ body.touch .tb{display:flex}
 #btnJump{right:max(134px,calc(env(safe-area-inset-right) + 108px));bottom:26px;width:68px;height:68px;font-size:14px}
 #btnDash{right:max(140px,calc(env(safe-area-inset-right) + 114px));bottom:110px;width:60px;height:60px;background:rgba(2,119,189,.5)}
 #btnZoom{right:max(30px,env(safe-area-inset-right));bottom:172px;width:56px;height:56px}
-#btnRel{right:max(104px,calc(env(safe-area-inset-right) + 78px));bottom:180px;width:52px;height:52px;font-size:11px}
-#btnSw{right:max(212px,calc(env(safe-area-inset-right) + 186px));bottom:52px;width:56px;height:56px;font-size:11px}
+#btnRel{right:max(296px,calc(env(safe-area-inset-right) + 270px));bottom:16px;width:48px;height:48px;font-size:11px}
+#btnSlide{right:max(214px,calc(env(safe-area-inset-right) + 188px));bottom:20px;width:60px;height:60px;font-size:12px}
+#btnKnife{right:max(100px,calc(env(safe-area-inset-right) + 74px));bottom:184px;width:54px;height:54px;font-size:22px}
+#btnNade{right:max(170px,calc(env(safe-area-inset-right) + 144px));bottom:182px;width:54px;height:54px;font-size:22px}
+#btnSw{right:max(232px,calc(env(safe-area-inset-right) + 206px));bottom:98px;width:56px;height:56px;font-size:11px}
 #stick{position:absolute;width:120px;height:120px;margin:-60px;border-radius:50%;border:2px solid rgba(255,255,255,.4);background:rgba(255,255,255,.08);display:none}
 #stick i{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px;border-radius:50%;background:rgba(255,255,255,.5)}
 #cards{position:absolute;inset:0;background:rgba(5,8,25,.72);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;pointer-events:auto}
@@ -161,6 +164,9 @@ table.sb{width:100%;border-collapse:collapse;font-size:15px}table.sb td{padding:
   <div class="tb" id="btnZoom" data-t="zoom">조준</div>
   <div class="tb" id="btnRel" data-t="reload">장전</div>
   <div class="tb" id="btnSw" data-t="swap">무기<br>교체</div>
+  <div class="tb" id="btnSlide" data-t="slide">슬라<br>이드</div>
+  <div class="tb" id="btnKnife" data-t="knife">🗡️</div>
+  <div class="tb" id="btnNade" data-t="nade">💣</div>
   <div id="cards" class="hide"></div>
 </div>
 
@@ -191,12 +197,12 @@ table.sb{width:100%;border-collapse:collapse;font-size:15px}table.sb td{padding:
 <div id="rot"><b>📱↪️</b>휴대폰을 가로로 돌려 주세요</div>
 
 <script src="three.min.js"></script>
-<script src="js/01-data.js?v=2"></script>
-<script src="js/02-core.js?v=2"></script>
-<script src="js/03-actors.js?v=2"></script>
-<script src="js/04-player.js?v=2"></script>
-<script src="js/05-modes.js?v=2"></script>
-<script src="js/06-net.js?v=2"></script>
-<script src="js/07-ui.js?v=2"></script>
+<script src="js/01-data.js?v=3"></script>
+<script src="js/02-core.js?v=3"></script>
+<script src="js/03-actors.js?v=3"></script>
+<script src="js/04-player.js?v=3"></script>
+<script src="js/05-modes.js?v=3"></script>
+<script src="js/06-net.js?v=3"></script>
+<script src="js/07-ui.js?v=3"></script>
 </body>
 </html>

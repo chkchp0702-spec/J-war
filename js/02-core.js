@@ -31,6 +31,7 @@ function noise(d,vol,fq,type){ const c=actx(); if(!c) return; const t=c.currentT
 function jingle(arr,step,type,vol){ arr.forEach((f,i)=>tone(f,.16,type||"square",vol||.14,0,i*(step||.09))); }
 const SFX = {
   shoot(k,v){ v=v==null?1:v; if(v<.04) return;
+    if(k==="grenade"){ tone(300,.16,"sine",.16*v,140); return; }
     if(k==="shotgun"){ noise(.22,.5*v,1400); tone(140,.15,"sawtooth",.2*v,50); }
     else if(k==="sniper"){ noise(.3,.5*v,2600); tone(300,.25,"sawtooth",.25*v,40); }
     else if(k==="rocket"){ noise(.35,.4*v,700); tone(200,.3,"sawtooth",.2*v,60); }
@@ -46,6 +47,7 @@ const SFX = {
   click(){ tone(660,.04,"square",.08); }, coin(){ jingle([988,1319],.07,"square",.12); }, empty(){ tone(200,.03,"square",.08); },
   boom(v){ v=v==null?1:v; if(v<.04) return; noise(.5,.6*v,500); tone(90,.4,"sine",.4*v,30); },
   win(){ jingle([523,659,784,1047,1319],.11,"square",.16); }, lose(){ jingle([392,330,262,196],.14,"triangle",.2); },
+  step(){ noise(.05,.06,420); }, slash(){ noise(.12,.22,3200,"bandpass"); tone(1300,.09,"sawtooth",.1,300); }, thump(){ tone(130,.2,"sine",.35,45); },
   count(){ tone(600,.1,"square",.14); }, go(){ tone(1000,.3,"square",.16); }, up(){ jingle([523,784,1047],.08,"triangle",.2); },
 };
 
@@ -168,6 +170,7 @@ function rayActor(o,d,a,mag){ const s=a.scale||1, w=.4*s*mag; let best=-1, head=
 
 /* ---------- 이펙트 ---------- */
 const FX = {tr:[],pt:[],fl:[],ex:[],shake:0};
+const HS = {t:0}; function hitStop(s){ HS.t=Math.max(HS.t,s); }   /* 순간 멈춤(손맛) */
 const _v1 = V3(), _v2 = V3(), _v3 = V3();
 function tracer(from,to,col,w,life){ let t=FX.tr.find(x=>x.t<=0);
   if(!t){ if(FX.tr.length>48) return; const m=new THREE.Mesh(UNIT,new THREE.MeshBasicMaterial({color:col,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})); fxG.add(m); t={m,t:0,life:.1}; FX.tr.push(t); }

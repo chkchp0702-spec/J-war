@@ -15,7 +15,7 @@ function beginMatch(type,map){ clearActors(); clearFX(); buildMap(map); Object.a
   resetInput(); UI.showGame(); }
 function stopMatch(){ M.active=false; M.paused=false; M.phase=""; resetInput(); if(document.exitPointerLock) document.exitPointerLock(); }
 function onKillCommon(t,by,info){ UI.feed(by?by.name:"",t.name,info.w&&WEAPONS[info.w]?WEAPONS[info.w].ic:"💥",by===P||t===P);
-  if(by===P){ M.kills++; G.stat.k++; bump("kills",1); if(info.head){ M.hs++; G.stat.hs++; bump("hs",1); }
+  if(by===P){ if(info.w==="knife") bump("knife",1); M.kills++; G.stat.k++; bump("kills",1); if(info.head){ M.hs++; G.stat.hs++; bump("hs",1); }
     bump("streak",P.streak); const s=P.streak; if(s>=2) UI.streak(s===2?"더블 아웃!":s===3?"트리플 아웃!":s===4?"막을 수 없어!":"전설이다!! ×"+s); } }
 function usedNames(){ const u={}; ACT.forEach(a=>u[a.name]=1); return u; }
 function botName(){ const u=usedNames(); const f=BOT_NAMES.filter(n=>!u[n]); return pick(f.length?f:BOT_NAMES); }

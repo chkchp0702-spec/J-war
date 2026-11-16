@@ -1,6 +1,6 @@
 "use strict";
 /* ===== J war — 데이터 (무기 · 맵 · 임무 · 패치 노트) ===== */
-const VER = 2;
+const VER = 3;
 
 /* 무기: dmg 한 발 피해, rate 발사 간격(초), mag 탄창, rel 장전(초), spread 퍼짐, range 사거리 */
 const WEAPONS = {
@@ -15,6 +15,9 @@ const WEAPONS = {
   minigun: {n:"황금 미니건", ic:"👑", dmg:11, rate:.05, mag:120,rel:2.6, spread:.045, range:60,  cost:5000, col:0xffd700, len:.66, desc:"전설의 무기"},
 };
 const WKEYS = Object.keys(WEAPONS);
+/* 늘 들고 다니는 것: 에너지 검(근접) · 폭탄(던지기) — 무기고에는 안 나옴 */
+WEAPONS.knife   = {n:"에너지 검", ic:"🗡️", dmg:55, col:0x40c4ff, len:.3, range:3};
+WEAPONS.grenade = {n:"폭탄", ic:"💣", dmg:95, proj:19, splash:5.2, grav:16, col:0x66bb6a, len:.3, range:60, spread:0};
 const HEAD_MUL = 1.6;
 
 /* 꾸미기 */
@@ -48,6 +51,8 @@ const MISSIONS = [
   {id:"ds15",k:"dash",    n:15, txt:"대시 15번 쓰기",           rw:80},
   {id:"gm3", k:"games",   n:3,  txt:"아무 게임이나 3판 하기",   rw:100},
   {id:"on1", k:"online",  n:1,  txt:"친구와 대결 1판 하기",     rw:150},
+  {id:"sl10",k:"slide",   n:10, txt:"슬라이딩 10번 하기",        rw:80},
+  {id:"kn3", k:"knife",   n:3,  txt:"에너지 검으로 3명 아웃",    rw:150},
   {id:"st3", k:"streak",  n:3,  txt:"한 번도 안 죽고 3연속 아웃", rw:130},
 ];
 
@@ -99,6 +104,14 @@ const MAP_KEYS = Object.keys(MAPS);
 
 /* 패치 노트 (새 버전은 맨 앞에 추가) */
 const PATCH = [
+  {v:3, d:"2026-11-16", t:"슬라이딩 · 검 · 폭탄 + 손맛", l:[
+    "슬라이딩: 달리다가 누르면 쭉 미끄러져요. 미끄러지다 점프하면 더 멀리! (슬라이드 점프)",
+    "에너지 검: 가까운 적을 베어요. 등 뒤에서 베면 한 방 (백스탭)",
+    "폭탄: 포물선으로 던져요. 발밑에 던지면 폭탄 점프",
+    "손맛 강화: 아웃시킬 때 순간 멈춤, 화면 흔들림, 맞은 적이 밀려남, 발소리",
+    "공중에서 속도가 유지돼서 연속 점프로 빠르게 이동할 수 있어요",
+    "임무 추가: 슬라이딩 10번, 검으로 3명 아웃",
+  ]},
   {v:2, d:"2026-11-16", t:"그래픽 · 조작 대수술", l:[
     "화면 넓이를 바로잡아 적이 크고 또렷하게 보여요",
     "그림자, 하늘 그러데이션, 타일 무늬 블록으로 그래픽 강화",

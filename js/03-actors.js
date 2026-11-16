@@ -62,13 +62,14 @@ function damage(t,amt,by,info){ info=info||{}; if(!t.alive) return;
   if(t.inv>0||M.phase!=="play") return;
   if(t===P&&by&&by.isBot) amt*=M.botDmg||1;
   t.hp-=amt; t.hurtT=.14; t.regenT=4; t.lastBy=by; if(info.slow) t.slowT=Math.max(t.slowT,info.slow);
+  if(by&&by!==t&&t.isBot){ const dx=t.pos.x-by.pos.x, dz=t.pos.z-by.pos.z, l=Math.hypot(dx,dz)||1, kb=Math.min(3.5,amt*.05)/t.scale; t.vel.x+=dx/l*kb; t.vel.z+=dz/l*kb; }
   if(by===P) hitFeedback(t,amt,info);
   if(t===P) UI.hurt(by,amt);
   if(t.hp<=0) kill(t,by,info); }
 function kill(t,by,info){ t.alive=false; t.hp=0; t.deadT=.6; t.deaths++; t.streak=0; _fp.set(t.pos.x,t.pos.y+1*t.scale,t.pos.z);
   burst(_fp,t.col||0xffffff,16,7,.24,.9,14); burst(_fp,0xffd740,8,5,.14,.7,8);
   if(by&&by!==t){ by.kills++; by.streak++; }
-  if(by===P){ SFX.kill(); UI.hitmark("k"); _fp.y+=1.2; floatText(_fp,info&&info.head?"헤드샷 아웃!":"아웃!",info&&info.head?"#ffd740":"#ff8a80",24,1.1); }
+  if(by===P){ SFX.kill(); SFX.thump(); hitStop(.07); FX.shake=Math.max(FX.shake,.28); UI.hitmark("k"); _fp.y+=1.2; floatText(_fp,info&&info.head?"헤드샷 아웃!":"아웃!",info&&info.head?"#ffd740":"#ff8a80",24,1.1); }
   M.onKill(t,by,info||{}); }
 
 /* ---------- 사격 ---------- */
@@ -89,15 +90,15 @@ function shoot(a,wkey,o,dir,opt){ opt=opt||{}; const w=WEAPONS[wkey]; a.kick=1; 
     if(hit){ if(!opt.visual){ let dmg=w.dmg*(a.dmgMul||1); if(w.pel) dmg*=clamp(1.3-t/w.range,.35,1); if(head) dmg*=HEAD_MUL*(a.headMul||1); damage(hit,dmg,a,{head,w:wkey,slow:w.slow}); }
       burst(_e,head?0xffd740:0xffffff,3,3,.08,.3); if(w.slow) burst(_e,0x80deea,2,2,.1,.4,2); }
     else if(t<w.range) burst(_e,w.col,2,2.5,.07,.25); } }
-function spawnProj(a,wkey,pos,dir,visual){ const w=WEAPONS[wkey]; const m=new THREE.Mesh(UNIT,matB(0xfff176)); m.scale.set(.16,.16,.55); m.position.copy(pos); _e.copy(pos).add(dir); m.lookAt(_e); fxG.add(m);
-  PROJ.push({a,wkey,pos,dir,spd:w.proj,life:3.5,m,visual:!!visual,tr:0}); }
+function spawnProj(a,wkey,pos,dir,visual){ const w=WEAPONS[wkey]; const m=new THREE.Mesh(UNIT,matB(w.grav?w.col:0xfff176)); if(w.grav) m.scale.set(.26,.26,.26); else m.scale.set(.16,.16,.55); m.position.copy(pos); _e.copy(pos).add(dir); m.lookAt(_e); fxG.add(m);
+  PROJ.push({a,wkey,pos,dir,spd:w.proj,life:3.5,m,visual:!!visual,tr:0,grav:w.grav||0}); }
 function explode(p,pt){ const w=WEAPONS[p.wkey]; boomFx(pt,w.splash); SFX.boom(P?clamp(1.1-P.pos.distanceTo(pt)/45,0,1):0);
   if(P&&P.alive){ const d=P.pos.distanceTo(pt); if(d<14) FX.shake=Math.max(FX.shake,.6*(1-d/14)); }
   for(const b of ACT.slice()){ if(!b.alive) continue; _o2.set(b.pos.x,b.pos.y+.9*b.scale,b.pos.z); const d=_o2.distanceTo(pt); if(d>=w.splash+b.r) continue; const k=1-clamp(d/w.splash,0,1)*.75;
     if(!b.remote&&(b===p.a||!p.visual)){ _o2.sub(pt).normalize(); const self=b===p.a; b.vel.x+=_o2.x*(self?11:8)*k; b.vel.z+=_o2.z*(self?11:8)*k; b.vel.y+=(self?9.5:5)*k; b.ground=false; }
     if(p.visual) continue;
     if(b===p.a) damage(b,16*k,null,{w:p.wkey,self:1}); else if(hostile(p.a,b)) damage(b,w.dmg*k*(p.a.dmgMul||1),p.a,{w:p.wkey}); } }
-function updateProj(dt){ for(let i=PROJ.length-1;i>=0;i--){ const p=PROJ[i], step=p.spd*dt; let t=rayWorld(p.pos,p.dir,step), hit=t<step;
+function updateProj(dt){ for(let i=PROJ.length-1;i>=0;i--){ const p=PROJ[i]; if(p.grav){ p.dir.multiplyScalar(p.spd); p.dir.y-=p.grav*dt; p.spd=p.dir.length(); p.dir.multiplyScalar(1/p.spd); p.m.rotation.x+=dt*9; } const step=p.spd*dt; let t=rayWorld(p.pos,p.dir,step), hit=t<step;
     for(const b of ACT){ if(!b.alive||!hostile(p.a,b)) continue; const r=rayActor(p.pos,p.dir,b,1.25); if(r&&r.t<=t){ t=r.t; hit=true; } }
     p.life-=dt; if(hit||p.life<=0){ _e.copy(p.pos).addScaledVector(p.dir,Math.max(0,t-.05)); explode(p,_e.clone()); fxG.remove(p.m); PROJ.splice(i,1); continue; }
     p.pos.addScaledVector(p.dir,step); p.m.position.copy(p.pos); p.tr-=dt; if(p.tr<=0){ p.tr=.03; burst(p.pos,0xffa726,1,.6,.16,.3,0); } } }

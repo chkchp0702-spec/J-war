@@ -8,7 +8,7 @@ const UI = {scr:"home",bT:0,sT:0,hT:0,vg:0,ind:[0,0,0],indI:0,
   panel(title,html,scr){ $("pTitle").textContent=title; $("pBody").innerHTML=html; $("pCoin").textContent="🪙 "+G.coins; $("panel").classList.remove("hide"); UI.scr=scr||"panel"; $("pBody").scrollTop=0; },
   weapon(){ if(!P) return; $("wpnName").textContent=WEAPONS[P.wkey].ic+" "+WEAPONS[P.wkey].n; $("btnZoom").style.visibility=WEAPONS[P.wkey].zoom?"visible":"hidden"; },
   hitmark(k){ const h=$("hitm"); h.className="s "+k; UI.hT=.12; },
-  hurt(by,amt){ UI.vg=Math.min(1,UI.vg+.25+amt/60); SFX.hurt(); if(!by||!P) return; const dx=by.pos.x-P.pos.x, dz=by.pos.z-P.pos.z, s=Math.sin(P.yaw), c=Math.cos(P.yaw);
+  hurt(by,amt){ UI.vg=Math.min(1,UI.vg+.25+amt/60); SFX.hurt(); FX.shake=Math.max(FX.shake,.2); if(!by||!P) return; const dx=by.pos.x-P.pos.x, dz=by.pos.z-P.pos.z, s=Math.sin(P.yaw), c=Math.cos(P.yaw);
     const ang=Math.atan2(dx*c-dz*s,-dx*s-dz*c)*180/Math.PI, i=UI.indI=(UI.indI+1)%3, el=$("dmgInd").children[i]; el.style.transform="rotate("+ang+"deg)"; UI.ind[i]=1; },
   feed(a,b,ic,me){ const f=$("feed"), d=document.createElement("div"); if(me) d.className="me"; d.textContent=(a?a+" ":"")+ic+" "+b; f.appendChild(d); while(f.children.length>4) f.removeChild(f.firstChild); setTimeout(()=>{ if(d.parentNode) d.parentNode.removeChild(d); },4500); },
   banner(t,sub,sec){ const b=$("banner"); b.innerHTML=esc(t)+(sub?"<small>"+esc(sub)+"</small>":""); b.classList.add("s"); UI.bT=sec||1.5; },
@@ -22,7 +22,7 @@ const UI = {scr:"home",bT:0,sT:0,hT:0,vg:0,ind:[0,0,0],indI:0,
     $("hpTxt").textContent=Math.ceil(P.hp)+(P.inv>0?" 🛡️":""); $("dashFill").style.width=(100*(1-clamp(P.dashLeft/P.dashCd,0,1)))+"%";
     $("ammoTxt").innerHTML=P.relT>0?"<small>장전 중…</small>":P.ammo[P.wi]+"<small> / "+magOf(P.wi)+"</small>";
     const cr=$("cross"), zoomed=camera.fov<40; cr.style.display=zoomed||!P.alive?"none":""; cr.style.setProperty("--g",(5+Math.min(14,Math.hypot(P.vel.x,P.vel.z)*1.1+(P.ground?0:5)+VM.kick*6))+"px"); cr.classList.toggle("on",I.onTarget);
-    $("scope").classList.toggle("hide",!zoomed);
+    $("scope").classList.toggle("hide",!zoomed); $("btnNade").style.opacity=P.nadeCd>0?.3:1; $("btnKnife").style.opacity=P.knifeCd>0?.4:1; $("btnSlide").style.opacity=P.slideCd>0||P.slideT>0?.4:1; $("btnDash").style.opacity=P.dashLeft>0?.4:1;
     if(UI.hT>0){ UI.hT-=dt; if(UI.hT<=0) $("hitm").className=""; }
     if(UI.bT>0){ UI.bT-=dt; if(UI.bT<=0) $("banner").classList.remove("s"); } if(UI.sT>0){ UI.sT-=dt; if(UI.sT<=0) $("streak").classList.remove("s"); }
     UI.vg=Math.max(0,UI.vg-dt*1.2); $("vign").style.opacity=Math.max(UI.vg,hp<.3&&P.alive?.35:0); $("frost").style.opacity=P.slowT>0?.8:0;
@@ -74,9 +74,9 @@ function scrSettings(){ UI.panel("⚙️ 설정",`
   ${M.active?"":`<div class="line"><div class="f"><b>기록 모두 지우기</b><small>코인·무기·등급이 모두 사라져요</small></div><button class="btn r" data-a="wipe">지우기</button></div>`}`,M.active?"pause2":"settings"); }
 function scrPatch(){ G.seenVer=VER; save(); UI.panel("📜 패치 노트",PATCH.map(p=>`<div class="line"><div class="f"><b>v${p.v} — ${esc(p.t)}</b><small>${p.d}</small><ul style="margin:6px 0 0;padding-left:18px;font-size:13px">${p.l.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div></div>`).join(""),"patch"); }
 function scrHelp(){ UI.panel("❓ 조작법",`
-  <div class="line"><div class="f"><b>📱 휴대폰 · 태블릿</b><small style="font-size:13px;opacity:1;line-height:1.7">왼쪽 화면을 끌면 이동 · 오른쪽 화면을 끌면 둘러보기<br>🔥 발사(누른 채 끌면 조준도 됨) · 점프(공중에서 한 번 더!) · 대시 · 장전 · 무기 교체<br>저격총은 '조준'을 누르면 확대돼요</small></div></div>
-  <div class="line"><div class="f"><b>💻 컴퓨터</b><small style="font-size:13px;opacity:1;line-height:1.7">WASD 이동 · 마우스 조준 · 왼쪽 클릭 발사 · 오른쪽 클릭 확대<br>스페이스 점프 · Shift 대시 · R 장전 · Q 무기 교체 · Esc 멈춤</small></div></div>
-  <div class="line"><div class="f"><b>💡 꿀팁</b><small style="font-size:13px;opacity:1;line-height:1.7">머리를 맞히면 피해가 1.6배! · 노란 점프대를 밟으면 높이 날아요<br>4초 동안 안 맞으면 체력이 저절로 차요 · 로켓을 발밑에 쏘면 로켓 점프!</small></div></div>`,"help"); }
+  <div class="line"><div class="f"><b>📱 휴대폰 · 태블릿</b><small style="font-size:13px;opacity:1;line-height:1.7">왼쪽 화면을 끌면 이동 · 오른쪽 화면을 끌면 둘러보기<br>🔥 발사(누른 채 끌면 조준도 됨) · 점프(공중에서 한 번 더!) · 대시 · 슬라이드 · 🗡️ 검 · 💣 폭탄<br>저격총은 '조준'을 누르면 확대돼요</small></div></div>
+  <div class="line"><div class="f"><b>💻 컴퓨터</b><small style="font-size:13px;opacity:1;line-height:1.7">WASD 이동 · 마우스 조준 · 왼쪽 클릭 발사 · 오른쪽 클릭 확대<br>스페이스 점프 · Shift 대시 · C 슬라이드 · F 검 · G 폭탄 · R 장전 · Q 무기 교체 · Esc 멈춤</small></div></div>
+  <div class="line"><div class="f"><b>💡 꿀팁</b><small style="font-size:13px;opacity:1;line-height:1.7">머리를 맞히면 피해가 1.6배! · 노란 점프대를 밟으면 높이 날아요<br>4초 동안 안 맞으면 체력이 저절로 차요 · 로켓이나 폭탄을 발밑에 터뜨리면 높이 점프!<br>달리다 슬라이드 → 바로 점프하면 훨씬 멀리 가요 · 적 등 뒤에서 검으로 베면 한 방!</small></div></div>`,"help"); }
 function scrDuel(){ const t=tierOf(G.tro), nx=TIERS[TIERS.indexOf(t)+1];
   UI.panel("⚔️ 결투",`<div style="text-align:center;font-size:14px">내 등급 <b style="color:${t.c}">🏆 ${G.tro} ${t.n}</b>${nx?` · 다음 등급 ${nx.n}까지 ${nx.t-G.tro}`:""}<br><small style="opacity:.75">먼저 3판을 이기면 승리! 등급이 오를수록 봇이 똑똑해져요.</small></div>
   <div class="modes">${[1,2,3].map(n=>`<button class="mode" data-a="duel" data-v="${n}"><b>${n===1?"🧍":n===2?"🧑‍🤝‍🧑":"👨‍👩‍👦"}</b>${n} 대 ${n}<small>${n===1?"나 혼자 승부":"봇 동료 "+(n-1)+"명과 함께"}</small><small>승리 🪙 ${50+25*n} · 🏆 +${10+2*n}</small></button>`).join("")}</div>`,"duel"); }
@@ -126,7 +126,7 @@ function checkVersion(){ if(!/^https?:/.test(location.protocol)) return; fetch("
 let lastT = 0;
 function frame(t){ requestAnimationFrame(frame); const now=t/1000; let dt=lastT?Math.min(.05,now-lastT):.016; lastT=now; if(dt<=0) dt=.001;
   NET.tick(dt);
-  if(M.active&&!M.paused){ updateGame(dt); updateVM(dt); updateFX(dt,now); UI.hud(dt); }
+  if(M.active&&!M.paused){ let gd=dt; if(HS.t>0){ HS.t-=dt; if(M.type!=="online") gd=dt*.1; } updateGame(gd); updateVM(dt); updateFX(dt,now); UI.hud(dt); }
   else if(!M.active){ const a=now*.12, S=W.S; camera.position.set(Math.cos(a)*S*.8,13,Math.sin(a)*S*.8); camera.lookAt(0,1,0); { const bf=baseFov(); if(camera.fov!==bf){ camera.fov=bf; camera.updateProjectionMatrix(); } } updateFX(dt,now); VM.g.visible=false; }
   renderer.clear(); renderer.render(scene,camera); if(VM.g.visible&&M.active){ renderer.clearDepth(); renderer.render(vmScene,vmCam); } }
 
