@@ -30,7 +30,7 @@ const UI = {scr:"home",bT:0,sT:0,hT:0,vg:0,ind:[0,0,0],indI:0,
 
   /* ----- 홈 ----- */
   home(){ ensureDay(); const lv=lvOf(G.xp), t=tierOf(G.tro);
-    $("me").innerHTML=`<button class="chip" data-a="name">✏️ ${esc(G.name||"이름 정하기")}</button><span class="chip">Lv.${lv}</span><span class="chip">🪙 ${G.coins}</span><span class="chip" style="color:${t.c}">🏆 ${G.tro} ${t.n}</span>`;
+    $("me").innerHTML=`<button class="chip" data-a="name">✏️ ${esc(G.name||"이름 정하기")}</button><button class="chip" data-a="diff">🎚️ 난이도: ${["쉬움","보통","어려움"][G.set.diff]}</button><span class="chip">Lv.${lv}</span><span class="chip">🪙 ${G.coins}</span><span class="chip" style="color:${t.c}">🏆 ${G.tro} ${t.n}</span>`;
     $("ver").textContent="버전 v"+VER+" · 최고 웨이브 "+G.best.wave; $("misDot").classList.toggle("hide",!misReady()); $("patchDot").classList.toggle("hide",G.seenVer>=VER); },
   result(o){ const r=o.r; let h=`<div id="res"><h1 style="color:${o.win?"#ffd740":"#cfd8dc"}">${esc(o.title)}</h1><div>${esc(o.sub)}</div><div class="rw"><span class="chip">🪙 +${r.coins}</span><span class="chip">✨ 경험치 +${r.xp}</span>${r.tro?`<span class="chip">🏆 ${r.tro>0?"+":""}${r.tro}</span>`:""}${r.lvUp?`<span class="chip" style="background:#ffd740;color:#222">🎉 레벨 ${r.lvUp}! 🪙 +${r.bonus}</span>`:""}</div>`;
     if(o.rows) h+=`<table class="sb" style="max-width:420px;margin:0 auto 8px">${o.rows.map((x,i)=>`<tr class="${x.me?"me":""}"><td>${i+1}등</td><td>${esc(x.n)}</td><td>${x.k} 아웃</td></tr>`).join("")}</table>`;
@@ -93,7 +93,7 @@ function scrPause(){ UI.panel(M.type==="online"?"메뉴 (대결은 계속돼요)
 const UIA = {
   back(){ if(UI.scr==="lobby"){ NET.leave(); UI.showMenu(); } else if(UI.scr==="pause") UIA.resume(); else if(UI.scr==="pause2") scrPause(); else if(UI.scr==="name"&&!G.name) return; else if(UI.scr==="result") UIA.home(); else { $("panel").classList.add("hide"); UI.scr="home"; UI.home(); } },
   home(){ if(NET.on) NET.leave(); UI.showMenu(); },
-  duelMenu(){ scrDuel(); }, gun(){ startGun(); }, paint(){ startPaint(); }, duel(v){ startDuel(+v||1); }, wave(){ startWave(); },
+  duelMenu(){ scrDuel(); }, diff(){ G.set.diff=(G.set.diff+1)%3; save(); UI.home(); toast(["쉬움: 봇이 느긋해요 (코인 0.8배)","보통: 봇이 피하고 물러나요","어려움: 봇이 빠르고 정확해요 (코인 1.4배)"][G.set.diff]); }, gun(){ startGun(); }, paint(){ startPaint(); }, duel(v){ startDuel(+v||1); }, wave(){ startWave(); },
   online(){ scrOnline(""); }, armory(){ scrArmory(); }, skins(){ UI.selS=UI.selH=null; scrSkins(); }, missions(){ scrMissions(); }, settings(){ scrSettings(); }, patch(){ scrPatch(); UI.home(); }, help(){ scrHelp(); }, name(){ scrName(false); },
   setname(){ const v=$("nameIn").value.trim().slice(0,8); if(!v){ toast("이름을 적어 주세요"); return; } G.name=v; save(); $("panel").classList.add("hide"); UI.scr="home"; UI.home(); if(UI.pendingRoom){ const c=UI.pendingRoom; UI.pendingRoom=""; UIA.enter(c); } },
   buyW(k){ const w=WEAPONS[k]; if(G.coins<w.cost){ toast("코인이 "+(w.cost-G.coins)+" 모자라요"); return; } G.coins-=w.cost; G.own[k]=1; save(); SFX.coin(); toast(w.n+" 을(를) 얻었어요!"); scrArmory(); },
@@ -138,7 +138,7 @@ function frame(t){ requestAnimationFrame(frame); const now=t/1000; let dt=lastT?
   renderer.clear(); renderer.render(scene,camera); if(VM.g.visible&&M.active){ renderer.clearDepth(); renderer.render(vmScene,vmCam); } }
 
 /* ---------- 시작 ---------- */
-(function boot(){ if(TOUCH) document.body.classList.add("touch"); if(G.set.pad) document.body.classList.add("pad"); initGL(); buildMap(pick(MAP_KEYS)); ensureDay(); UI.home(); checkVersion();
+(function boot(){ if(TOUCH) document.body.classList.add("touch"); if(G.set.pad) document.body.classList.add("pad"); if(G.set.gfx) document.body.classList.add("gfx"); initGL(); buildMap(pick(MAP_KEYS)); ensureDay(); UI.home(); checkVersion();
   const room=(new URLSearchParams(location.search).get("room")||"").replace(/\D/g,"").slice(0,4);
   if(!G.name){ if(room.length===4) UI.pendingRoom=room; scrName(true); } else if(room.length===4) UIA.enter(room);
   window.__jw={M,G,ACT,W,NET,UI,UIA,I,get P(){ return P; },step(dt,n){ for(let i=0;i<(n||1);i++){ if(M.active&&!M.paused) updateGame(dt); } }};

@@ -79,7 +79,7 @@ function playerFire(){ if(P.knifeOnly){ knife(); return; } const k=P.wkey, w=WEA
   if(P.ammo[P.wi]<=0){ reload(); return; }
   if(!(P.supT>0)) P.ammo[P.wi]--; P.cool=w.rate*P.rateMul*(P.supT>0?.6:1); dirFrom(P.yaw,P.pitch,_pd); _po.copy(camera.position);
   const mv=Math.hypot(P.vel.x,P.vel.z); let sm=1+(mv>3?.5:0)+(P.ground?0:.6); if(w.zoom) sm=camera.fov<40?1:w.hip/w.spread;
-  shoot(P,k,_po,_pd,{sm,dm:(1+.02*stars(k))*(P.pwD>0?2:1)}); VM.kick=1; VM.flash=.05; P.fireT=M.t; FX.shake=Math.max(FX.shake,k==="sniper"||k==="shotgun"||k==="rocket"?.26:.06); P.rec=Math.min(.09,P.rec+(k==="sniper"||k==="shotgun"||k==="rocket"?.05:.012));
+  shoot(P,k,_po,_pd,{sm,dm:(1+.02*stars(k))*(P.pwD>0?2:1)}); VM.kick=1; VM.flash=.05; P.fireT=M.t; ML.position.copy(camera.position).addScaledVector(_pd,1.2); ML.intensity=1.4; FX.shake=Math.max(FX.shake,k==="sniper"||k==="shotgun"||k==="rocket"?.26:.06); P.rec=Math.min(.09,P.rec+(k==="sniper"||k==="shotgun"||k==="rocket"?.05:.012));
   if(M.type==="online") NET.shot(k,_po,_pd); if(P.ammo[P.wi]<=0) reload(); }
 function updatePlayer(dt){ if(!P) return; if(P.inv>0) P.inv-=dt; if(P.slowT>0) P.slowT-=dt; if(P.dashLeft>0) P.dashLeft-=dt; if(P.knifeCd>0) P.knifeCd-=dt; if(P.nadeCd>0) P.nadeCd-=dt; if(P.slideCd>0) P.slideCd-=dt; if(P.pwD>0) P.pwD-=dt; if(P.pwS>0) P.pwS-=dt; if(P.supT>0){ P.supT-=dt; if(P.supT<=0) P.dmgMul/=1.3; }
   const w=WEAPONS[P.wkey], frozen=M.freeze>0||M.phase!=="play";
@@ -96,7 +96,7 @@ function updatePlayer(dt){ if(!P) return; if(P.inv>0) P.inv-=dt; if(P.slowT>0) P
     if(I.dashQ){ I.dashQ=false; if(P.dashLeft<=0){ let dx=wx, dz=wz; const dl=Math.hypot(dx,dz); if(dl<.5){ dx=-s; dz=-c; } else { dx/=dl; dz/=dl; } P.dvx=dx*21; P.dvz=dz*21; P.dashT=.17; P.dashLeft=P.dashCd; SFX.dash(); bump("dash",1); } }
     if(P.dashT>0){ P.dashT-=dt; P.vel.x=P.dvx; P.vel.z=P.dvz; if(P.vel.y<0) P.vel.y*=.5; }
     const vy0=P.vel.y, g0=P.ground; moveActor(P,dt); if(P.ground){ P.air=0; if(!g0&&vy0<-7) P.dip=Math.min(.25,-vy0*.013); } padCheck(P);
-    P.regenT-=dt; if(P.regenT<=0&&P.hp<P.maxhp) P.hp=Math.min(P.maxhp,P.hp+7*P.regenMul*dt);
+    P.regenT-=dt; if(P.regenT<=0&&P.hp<P.maxhp) P.hp=Math.min(P.maxhp,P.hp+5*P.regenMul*dt);
     P.cool-=dt; if(P.swT>0) P.swT-=dt; if(P.relT>0){ P.relT-=dt; if(P.relT<=0){ P.ammo[P.wi]=magOf(P.wi); SFX.reloaded(); } }
     aimAssist(dt); aimCheck(); const auto=G.set.auto&&I.onTarget&&(!w.zoom||zoomed);
     if((I.fire||auto)&&!frozen&&(P.crouch<.4||P.slideT>0)) playerFire();
@@ -113,17 +113,21 @@ function updatePlayer(dt){ if(!P) return; if(P.inv>0) P.inv-=dt; if(P.slowT>0) P
 /* ---------- 손에 든 총 (화면 오른쪽 아래) ---------- */
 const VM = {g:new THREE.Group(),kick:0,flash:0,swx:0,swy:0,fl:null};
 function buildVM(key){ const g=VM.g; while(g.children.length) g.remove(g.children[0]); if(!g.parent) vmScene.add(g);
-  const w=WEAPONS[key], L=w.len, main=new THREE.MeshLambertMaterial({color:stars(key)>=5?0xffd700:w.col}), dark=new THREE.MeshLambertMaterial({color:0x263238}), light=new THREE.MeshLambertMaterial({color:0xeceff1});
-  const mk=(sx,sy,sz,m,x,y,z)=>{ const me=new THREE.Mesh(UNIT,m); me.scale.set(sx,sy,sz); me.position.set(x,y,z); g.add(me); return me; };
-  const fat=key==="rocket"?.15:key==="shotgun"?.1:key==="minigun"?.13:.08;
-  mk(fat,fat*1.15,L,main,0,0,-L/2); mk(.06,.15,.075,dark,0,-.11,-.07); mk(.09,.1,.09,new THREE.MeshLambertMaterial({color:0xffd9b3}),0,-.16,-.06);
-  if(key==="rocket"){ mk(.11,.11,.1,dark,0,0,-L-.03); mk(.2,.2,.08,light,0,0,-.02); }
-  else if(key==="minigun"){ [[-.035,.03],[.035,.03],[0,-.035]].forEach(p=>mk(.035,.035,.3,dark,p[0],p[1],-L-.13)); mk(.15,.15,.05,dark,0,0,-L+.02); }
-  else if(key==="laser"){ mk(.03,.03,.25,matB(0xff80ab),0,0,-L-.1); mk(.1,.03,L*.6,light,0,.06,-L*.5); }
-  else if(key==="ice"){ mk(.05,.05,.2,matB(0xe0f7fa),0,0,-L-.08); mk(.04,.12,.04,matB(0xb2ebf2),0,.09,-L*.6); mk(.04,.09,.04,matB(0xb2ebf2),0,.08,-L*.3); }
-  else { mk(.04,.04,L*.4,dark,0,.005,-L-L*.15); if(key!=="pistol") mk(.05,.12,.06,dark,0,-.1,-L*.55); }
-  if(key==="sniper"){ mk(.06,.06,.26,dark,0,.085,-L*.45); mk(.07,.07,.03,matB(0x40c4ff),0,.085,-L*.45-.14); }
-  else mk(.02,.035,.02,light,0,fat*.6+.015,-L+.04);
+  const w=WEAPONS[key], L=w.len, ol=G.set.gfx>0, main=new THREE.MeshLambertMaterial({color:stars(key)>=5?0xffd700:w.col}), dark=new THREE.MeshLambertMaterial({color:0x1f2433}), light=new THREE.MeshLambertMaterial({color:0xeceff1}), skin=new THREE.MeshLambertMaterial({color:0xffd2a6}), slv=new THREE.MeshLambertMaterial({color:SKINS[G.skin].c});
+  const mk=(sx,sy,sz,m,x,y,z,no)=>{ const me=new THREE.Mesh(UNIT,m); me.scale.set(sx,sy,sz); me.position.set(x,y,z); g.add(me); if(ol&&!no){ const q=new THREE.Mesh(UNIT,OUTM); q.scale.set(1+.014/sx,1+.014/sy,1+.014/sz); me.add(q); } return me; };
+  const fat=key==="rocket"?.15:key==="shotgun"?.1:key==="minigun"?.13:.08, long=L>=.5&&key!=="rocket";
+  if(key==="knife"){ mk(.02,.1,.52,matB(0x80d8ff),0,.03,-.4); mk(.03,.13,.5,new THREE.MeshBasicMaterial({color:0x40c4ff,transparent:true,opacity:.35}),0,.03,-.4,1); mk(.1,.035,.05,light,0,.02,-.12); mk(.05,.055,.16,dark,0,.01,-.03); }
+  else { mk(fat,fat*1.15,L,main,0,0,-L/2); mk(fat*.55,.02,L*.7,dark,0,fat*.6,-L*.5,1); mk(fat+.006,.028,L*.45,light,0,-.012,-L*.45,1);
+    mk(.055,.15,.07,dark,0,-.11,-.07); if(key!=="pistol"&&key!=="rocket"&&key!=="laser") mk(.05,.17,.085,dark,0,-.13,-L*.42); if(long) mk(fat*.8,fat*1.35,.17,dark,0,-.015,.085);
+    if(key==="rocket"){ mk(.11,.11,.1,dark,0,0,-L-.03); mk(.2,.2,.08,light,0,0,-.02); }
+    else if(key==="minigun"){ [[-.035,.03],[.035,.03],[0,-.035]].forEach(p=>mk(.035,.035,.3,dark,p[0],p[1],-L-.13,1)); mk(.15,.15,.05,dark,0,0,-L+.02); }
+    else if(key==="laser"){ mk(.03,.03,.25,matB(0xff80ab),0,0,-L-.1,1); mk(.1,.03,L*.6,light,0,.06,-L*.5,1); }
+    else if(key==="ice"){ mk(.05,.05,.2,matB(0xe0f7fa),0,0,-L-.08,1); mk(.04,.12,.04,matB(0xb2ebf2),0,.09,-L*.6,1); mk(.04,.09,.04,matB(0xb2ebf2),0,.08,-L*.3,1); }
+    else { mk(.045,.045,L*.4,dark,0,.005,-L-L*.15); mk(.06,.06,.05,light,0,.005,-L-L*.33,1); }
+    if(key==="sniper"){ mk(.06,.06,.26,dark,0,.085,-L*.45); mk(.07,.07,.03,matB(0x40c4ff),0,.085,-L*.45-.14,1); }
+    else mk(.02,.035,.02,light,0,fat*.6+.02,-L+.04,1); }
+  mk(.085,.09,.1,skin,0,-.15,-.06); const s1=mk(.11,.11,.36,slv,.03,-.2,.13); s1.rotation.x=-.25;                                    /* 오른손 · 소매 */
+  if(long){ mk(.08,.07,.1,skin,-.01,-fat*.95,-L*.62); const s2=mk(.1,.1,.4,slv,-.13,-.16,-L*.62+.2); s2.rotation.y=.62; s2.rotation.x=-.2; }   /* 왼손 받침 */
   VM.fl=new THREE.Mesh(new THREE.OctahedronGeometry(.09),new THREE.MeshBasicMaterial({color:0xfff59d,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false})); VM.fl.position.set(0,0,-L-(key==="pistol"?.16:.3)); VM.fl.visible=false; g.add(VM.fl); VM.len=L; g.scale.setScalar(.6); }
 function updateVM(dt){ const g=VM.g; if(!P){ g.visible=false; return; } g.visible=P.alive&&camera.fov>40&&M.active;
   if(VM.kick>0) VM.kick=Math.max(0,VM.kick-dt*9); VM.swx*=Math.exp(-10*dt); VM.swy*=Math.exp(-10*dt);

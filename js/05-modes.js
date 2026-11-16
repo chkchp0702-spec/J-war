@@ -7,7 +7,9 @@ function ensureDay(){ const d=new Date(), key=d.getFullYear()+"-"+(d.getMonth()+
   G.day=key; G.dayc={}; G.mis=[]; const ks={}; for(const m of MISSIONS.slice().sort(()=>Math.random()-.5)){ if(ks[m.k]) continue; ks[m.k]=1; G.mis.push({id:m.id,got:0}); if(G.mis.length>=3) break; } save(); }
 function bump(k,n){ ensureDay(); if(k==="wave"||k==="streak") G.dayc[k]=Math.max(G.dayc[k]||0,n); else G.dayc[k]=(G.dayc[k]||0)+n; }
 function misReady(){ ensureDay(); return G.mis.filter(x=>{ const m=MISSIONS.find(y=>y.id===x.id); return m&&!x.got&&(G.dayc[m.k]||0)>=m.n; }).length; }
-function grant(coins,xp,tro){ const lv0=lvOf(G.xp); G.coins+=coins; G.xp+=xp; G.tro=Math.max(0,G.tro+(tro||0)); const lv1=lvOf(G.xp); let bonus=0;
+/* 난이도: 쉬움·보통·어려움 + 트로피가 오를수록 봇이 똑똑해짐 */
+function botSkill(){ return clamp([.18,.42,.68][G.set.diff]+G.tro/900,.12,.95); }
+function grant(coins,xp,tro){ if(M.type!=="online") coins=Math.round(coins*[.8,1,1.4][G.set.diff]); const lv0=lvOf(G.xp); G.coins+=coins; G.xp+=xp; G.tro=Math.max(0,G.tro+(tro||0)); const lv1=lvOf(G.xp); let bonus=0;
   if(lv1>lv0){ for(let l=lv0+1;l<=lv1;l++) bonus+=40*l; G.coins+=bonus; } save(); return {coins,xp,tro:tro||0,lvUp:lv1>lv0?lv1:0,bonus}; }
 
 /* ---------- 공통 ---------- */
@@ -23,8 +25,8 @@ function tickFreeze(dt){ if(M.freeze<=0) return; const a=Math.ceil(M.freeze); M.
 
 /* ---------- 결투 (봇전) ---------- */
 function botWeapons(skill){ const p=["pistol","rifle","rifle"]; if(skill>.22) p.push("shotgun","smg"); if(skill>.4) p.push("sniper"); if(skill>.5) p.push("ice"); if(skill>.62) p.push("rocket"); if(skill>.78) p.push("laser"); return p; }
-function startDuel(n){ const map=pick(MAP_KEYS), m=MAPS[map]; beginMatch("duel",map); const skill=clamp(.1+G.tro/700,.1,.95);
-  Object.assign(M,{n,sc:[0,0],round:0,need:3,skill,botDmg:lerp(.42,1,skill),onKill:duelKill}); const order=n===1?[1]:n===2?[0,2]:[1,0,2], wp=botWeapons(skill);
+function startDuel(n){ const map=pick(MAP_KEYS), m=MAPS[map]; beginMatch("duel",map); const skill=botSkill();
+  Object.assign(M,{n,sc:[0,0],round:0,need:3,skill,botDmg:lerp(.7,1.25,skill),onKill:duelKill}); const order=n===1?[1]:n===2?[0,2]:[1,0,2], wp=botWeapons(skill);
   spawnPlayer(m.t0[order[0]][0],m.t0[order[0]][1],0,0); P.home=m.t0[order[0]];
   for(let i=1;i<n;i++){ const s=m.t0[order[i]]; const b=addBot({name:botName(),team:0,col:0x40c4ff,lcol:"#80d8ff",wkey:pick(wp),skill:Math.min(.95,skill+.05),hat:Math.floor(rnd(0,HATS.length))}); b.home=s; }
   for(let i=0;i<n;i++){ const s=m.t0[order[i]]; const b=addBot({name:botName(),team:1,col:0xff5252,lcol:"#ff8a80",wkey:pick(wp),skill,hat:Math.floor(rnd(0,HATS.length))}); b.home=[-s[0],-s[1]]; }
@@ -45,19 +47,19 @@ function endDuel(win){ stopMatch(); G.stat.games++; bump("games",1); if(win){ G.
 
 /* ---------- 로봇 웨이브 ---------- */
 const ROBOTS = {
-  runner:{name:"돌격 로봇",robot:1,melee:{dmg:9,cd:.8},hp:42,speed:6.1,scale:.9,col:0xff7043,eye:0xffea00,pts:10},
+  runner:{name:"돌격 로봇",robot:1,melee:{dmg:9,cd:.8},hp:48,speed:6.7,scale:.9,col:0xff7043,eye:0xffea00,pts:10},
   gunner:{name:"사격 로봇",robot:1,hp:70,speed:4.2,scale:1,col:0x7e57c2,eye:0x00e5ff,pts:20},
   tank:{name:"탱크 로봇",robot:1,melee:{dmg:22,cd:1.2},hp:250,speed:3.5,scale:1.4,col:0x546e7a,eye:0xff1744,pts:40},
   boss:{name:"메가 로봇",robot:1,wkey:"rocket",hp:850,speed:3.6,scale:1.8,col:0xb71c1c,eye:0xffffff,pts:200,skill:.5},
 };
 function startWave(){ const map=pick(MAP_KEYS), m=MAPS[map]; beginMatch("wave",map); Object.assign(M,{wave:0,score:0,queue:[],spawnT:0,onKill:waveKill});
   spawnPlayer(0,m.S*.55,0,0); UI.score("","",1); nextWave(); }
-function nextWave(){ M.wave++; const n=M.wave; bump("wave",n); M.phase="play"; M.queue=[]; M.botDmg=Math.min(1,.5+n*.035);
-  const cnt=4+Math.floor(n*1.6); for(let i=0;i<cnt;i++){ const r=Math.random(); M.queue.push(n>=3&&r<.3?"gunner":n>=4&&r<.44?"tank":"runner"); }
+function nextWave(){ M.wave++; const n=M.wave; bump("wave",n); M.phase="play"; M.queue=[]; M.botDmg=Math.min(1.2,.62+n*.045)*[.75,1,1.3][G.set.diff];
+  const cnt=5+Math.floor(n*2); for(let i=0;i<cnt;i++){ const r=Math.random(); M.queue.push(n>=3&&r<.3?"gunner":n>=4&&r<.44?"tank":"runner"); }
   if(n%5===0) M.queue.push("boss"); M.spawnT=1.2; if(P.shieldNext){ P.inv=P.shieldNext; P.shieldNext=0; }
   UI.banner(n%5===0?"⚠️ 보스 웨이브 "+n:"웨이브 "+n,"로봇 "+M.queue.length+"대가 몰려온다!",1.8); SFX.count(); }
 function spawnRobot(type){ const m=MAPS[M.map], d=ROBOTS[type], n=M.wave; let pts=m.ffa.filter(s=>Math.hypot(s[0]-P.pos.x,s[1]-P.pos.z)>15); if(!pts.length) pts=m.ffa; const s=pick(pts);
-  const o=Object.assign({},d,{team:1,lcol:"#ffab91",skill:d.skill||Math.min(.6,.18+n*.025)}); if(type==="gunner") o.wkey=pick(["pistol","rifle","smg"]);
+  const o=Object.assign({},d,{team:1,lcol:"#ffab91",skill:d.skill||Math.min(.75,.28+n*.03)}); if(type==="gunner") o.wkey=pick(["pistol","rifle","smg"]);
   o.maxhp=o.hp=Math.round(d.hp*(1+.1*(n-1))); const b=addBot(o); b.rtype=type; placeActor(b,s[0]+rnd(-2,2),s[1]+rnd(-2,2),0); b.hp=b.maxhp; burst(b.pos,0x80d8ff,10,4,.2,.6,-3); }
 function waveKill(t,by,info){ onKillCommon(t,by,info); if(t===P){ M.phase="over"; M.pt=1.8; UI.banner("아웃!","웨이브 "+M.wave+" 까지 버텼어요",1.8); return; }
   M.score+=ROBOTS[t.rtype||"runner"].pts*M.wave; if(Math.random()<(t.rtype==="boss"?1:.14)) dropHeart(t.pos); }
@@ -100,8 +102,8 @@ function endOnline(){ const rows=scoreRows(), rank=rows.findIndex(r=>r.me)+1, mu
 function setPlayerWeapon(k){ P.eq=[k,k]; P.wi=0; P.wkey=k; P.ammo=[magOf(0),magOf(1)]; P.relT=0; P.swT=.2; I.zoom=false; buildVM(k); UI.weapon(); }
 function ffaRespawn(a){ const m=MAPS[M.map]; let best=m.ffa[0], bd=-1; for(const s of m.ffa){ let d=1e9; for(const o of ACT) if(o!==a&&o.alive) d=Math.min(d,Math.hypot(o.pos.x-s[0],o.pos.z-s[1])); d+=Math.random()*6; if(d>bd){ bd=d; best=s; } }
   placeActor(a,best[0],best[1],Math.atan2(best[0],best[1])); a.inv=1.5; }
-function startGun(){ const map=pick(MAP_KEYS), m=MAPS[map]; beginMatch("gun",map); const skill=clamp(.1+G.tro/700,.1,.9), cols=[0xff5252,0xffa726,0xab47bc,0x26a69a,0x8d6e63];
-  Object.assign(M,{botDmg:lerp(.4,.9,skill),onKill:gunKill,sbT:0,win:false}); spawnPlayer(m.ffa[0][0],m.ffa[0][1],Math.atan2(m.ffa[0][0],m.ffa[0][1]),"me"); P.gi=0; setPlayerWeapon(GG[0]);
+function startGun(){ const map=pick(MAP_KEYS), m=MAPS[map]; beginMatch("gun",map); const skill=botSkill(), cols=[0xff5252,0xffa726,0xab47bc,0x26a69a,0x8d6e63];
+  Object.assign(M,{botDmg:lerp(.6,1.15,skill),onKill:gunKill,sbT:0,win:false}); spawnPlayer(m.ffa[0][0],m.ffa[0][1],Math.atan2(m.ffa[0][0],m.ffa[0][1]),"me"); P.gi=0; setPlayerWeapon(GG[0]);
   for(let i=1;i<=5;i++){ const b=addBot({name:botName(),team:"b"+i,col:cols[i-1],lcol:"#ff8a80",wkey:GG[0],skill:skill*rnd(.8,1.1),hat:Math.floor(rnd(0,HATS.length))}); b.gi=0; placeActor(b,m.ffa[i][0],m.ffa[i][1],Math.atan2(m.ffa[i][0],m.ffa[i][1])); }
   M.freeze=4.2; UI.score("","",1); UI.banner("🔁 총 바꾸기","아웃시킬 때마다 총이 바뀌어요. 마지막은 에너지 검!",1.6); }
 function gunKill(t,by,info){ onKillCommon(t,by,info); t.respT=2.2; if(!by||by===t||M.phase!=="play") return; by.gi++; const N=GG.length;
@@ -126,8 +128,8 @@ function paintAt(x,z,r,team){ if(!PAINT.g||(team!==0&&team!==1)) return; const n
   for(let Z=z0;Z<=z1;Z++) for(let X=x0;X<=x1;X++){ const dx=X+.5-cx, dz=Z+.5-cz; if(dx*dx+dz*dz>r*r) continue; const k=Z*n+X; if(W.grid[k]) continue; const o=g[k]; if(o===team+1) continue; if(o) PAINT.cnt[o-1]--; g[k]=team+1; PAINT.cnt[team]++; }
   const c=PAINT.cx; c.fillStyle=PAINT.col[team]; c.beginPath(); c.arc(cx*4,cz*4,r*4,0,6.2832); c.fill(); PAINT.dirty=true; }
 function paintMul(a){ if(M.type!=="paint"||!PAINT.g) return 1; const n=W.gn, v=PAINT.g[clamp(Math.floor(a.pos.z+W.S),0,n-1)*n+clamp(Math.floor(a.pos.x+W.S),0,n-1)]; return v===a.team+1?1.15:v?.85:1; }
-function startPaint(){ const map=pick(MAP_KEYS), m=MAPS[map]; beginMatch("paint",map); paintInit(); const skill=clamp(.1+G.tro/700,.1,.9), wp=botWeapons(skill), order=[1,0,2];
-  Object.assign(M,{botDmg:lerp(.42,.95,skill),onKill:paintKill,rt:90,wt:0,win:false}); spawnPlayer(m.t0[1][0],m.t0[1][1],0,0); P.home=m.t0[1];
+function startPaint(){ const map=pick(MAP_KEYS), m=MAPS[map]; beginMatch("paint",map); paintInit(); const skill=botSkill(), wp=botWeapons(skill), order=[1,0,2];
+  Object.assign(M,{botDmg:lerp(.65,1.2,skill),onKill:paintKill,rt:90,wt:0,win:false}); spawnPlayer(m.t0[1][0],m.t0[1][1],0,0); P.home=m.t0[1];
   for(let i=1;i<3;i++){ const s=m.t0[order[i]], b=addBot({name:botName(),team:0,col:0x2979ff,lcol:"#80d8ff",wkey:pick(wp),skill,hat:Math.floor(rnd(0,HATS.length))}); b.home=s; placeActor(b,s[0],s[1],0); }
   for(let i=0;i<3;i++){ const s=m.t0[order[i]], b=addBot({name:botName(),team:1,col:0xff9100,lcol:"#ffcc80",fcol:0xff9100,wkey:pick(wp),skill,hat:Math.floor(rnd(0,HATS.length))}); b.home=[-s[0],-s[1]]; placeActor(b,b.home[0],b.home[1],Math.PI); }
   M.freeze=4.2; UI.score("0%","0%"); UI.timer(M.rt); UI.banner("🎨 색칠 대결","바닥을 파란색으로 더 많이 칠하면 승리!",1.8); }
