@@ -111,9 +111,37 @@ function buildMap(key){ const m=MAPS[key]; W.key=key;
   const S=m.S, ft=makeFloorTex(m.floor[0],m.floor[1],S,m.dark);
   const fl=new THREE.Mesh(new THREE.PlaneGeometry(2*S+2,2*S+2),new THREE.MeshLambertMaterial({map:ft})); fl.rotation.x=-Math.PI/2; fl.userData.own=1; fl.receiveShadow=true; worldG.add(fl);
   m.build((x,y,z,w,h,d,c,mir)=>{ addBox(x,y,z,w,h,d,c); if(mir) addBox(-x,y,-z,w,h,d,c); }, (x,z,p,mir)=>{ addPad(x,z,p); if(mir) addPad(-x,-z,p); });
+  buildProps(m);
   addBox(0,0,S+.5,2*S+2,7,1,m.wall); addBox(0,0,-S-.5,2*S+2,7,1,m.wall); addBox(S+.5,0,0,1,7,2*S,m.wall); addBox(-S-.5,0,0,1,7,2*S,m.wall);
   { const ac=matB(m.dark?0x00e5ff:0xffffff), ac2=matB(m.dark?0xff4081:0xffc107); [[0,S-.04,2*S,.06],[0,-S+.04,2*S,.06],[S-.04,0,.06,2*S],[-S+.04,0,.06,2*S]].forEach(p=>{ const a=new THREE.Mesh(UNIT,ac); a.scale.set(p[2],.22,p[3]); a.position.set(p[0],3.2,p[1]); const b=new THREE.Mesh(UNIT,ac2); b.scale.set(p[2],.5,p[3]); b.position.set(p[0],.25,p[1]); worldG.add(a,b); }); }
   buildGrid(); buildDeco(m); }
+/* 맵 소품(v9): 벽 가까운 정해진 자리에만 세운다 — 친구와 대결에서도 모두 같은 곳. 부딪히고 뒤에 숨을 수 있다 */
+let PG;
+const PROPS = {
+  lamp(p,hi,dk){ p(PG.cyl,0x37474f,.6,.22,.6,0,.11,0); p(PG.cyl,0x546e7a,.16,3.3,.16,0,1.75,0); hi&&p(UNIT,0x37474f,.5,.12,.5,0,3.42,0); p(PG.sph,dk?0x00e5ff:0xfff3b0,.52,.52,.52,0,3.68,0,1); return [.5,3.9]; },
+  barrel(p,hi,dk){ const c=dk?[0x37474f,0x76ff03]:W.key==="desert"?[0x8d6e63,0x4e342e]:[0xef5350,0xffd54f];
+    p(PG.cyl,c[0],.95,1.15,.95,0,.575,0); p(PG.cyl,c[1],1,.12,1,0,.3,0,dk); p(PG.cyl,c[1],1,.12,1,0,.86,0,dk); hi&&p(PG.cyl,dk?0x263238:0x263238,.6,.05,.6,0,1.17,0); return [.9,1.15]; },
+  cone(p,hi){ p(UNIT,0xff7043,.8,.09,.8,0,.045,0); p(PG.cone,0xff7043,.6,1,.6,0,.58,0); hi&&p(PG.cyl,0xffffff,.37,.16,.37,0,.52,0,1); return [.62,1.05]; },
+  cactus(p,hi){ const c=0x43a047, c2=0x2e7d32; p(PG.cyl,c,.58,2.3,.58,0,1.15,0); p(PG.sph,c,.58,.58,.58,0,2.3,0);
+    p(UNIT,c2,.5,.26,.3,.36,1.2,0); p(PG.cyl,c,.32,.95,.32,.6,1.62,0); p(UNIT,c2,.46,.24,.28,-.34,.9,0); p(PG.cyl,c,.3,.7,.3,-.56,1.2,0);
+    hi&&p(PG.sph,0xff80ab,.2,.2,.2,.1,2.62,0,1); return [.7,2.55]; },
+  sign(p,hi){ p(UNIT,0x6d4c41,.14,1.7,.14,0,.85,0); p(UNIT,0xffd54f,1.15,.62,.1,0,1.85,0); p(UNIT,0x4e342e,.62,.13,.12,-.08,1.85,0,1);
+    hi&&p(PG.cone,0x4e342e,.34,.3,.12,.34,1.85,0,1).rotation.set(0,0,-Math.PI/2); return [.5,2.16]; },
+  dish(p,hi){ p(PG.cyl,0x455a64,.6,.2,.6,0,.1,0); p(PG.cyl,0x78909c,.13,2.5,.13,0,1.35,0); p(PG.cone,0xb0bec5,1,.42,1,0,2.78,0).rotation.x=Math.PI; p(PG.sph,0xff4081,.24,.24,.24,0,3.08,0,1); return [.45,3.2]; },
+};
+const PROP_SET = {toy:["lamp","barrel","cone"], desert:["cactus","barrel","sign"], space:["lamp","barrel","dish"]};
+function buildProps(m){ const S=m.S, hi=G.set.gfx>0, set=PROP_SET[W.key]||PROP_SET.toy, e=S-.85, slots=[], nb=W.boxes.length;
+  PG=PG||{cyl:new THREE.CylinderGeometry(.5,.5,1,10), cone:new THREE.ConeGeometry(.5,1,10), sph:new THREE.SphereGeometry(.5,10,8)};
+  for(const s of [1,-1]){ for(const t of [-.75,-.42,.42,.75]) slots.push([t*S,s*e,Math.abs(t)>.5?0:1,s>0?Math.PI:0]); for(const t of [-.5,.5]) slots.push([s*e,t*S,2,s>0?-Math.PI/2:Math.PI/2]); }
+  const sp=(m.t0||[]).concat(m.ffa||[]);
+  for(const [x,z,ki,ry] of slots){
+    let ok=true; for(let i=0;i<nb&&ok;i++){ const b=W.boxes[i]; if(x+1.1>b.x0&&x-1.1<b.x1&&z+1.1>b.z0&&z-1.1<b.z1&&b.y0<4) ok=false; }
+    for(const q of W.pads) if(Math.hypot(q.x-x,q.z-z)<2.6) ok=false;
+    for(const q of sp) if(Math.hypot(q[0]-x,q[1]-z)<2.6||Math.hypot(q[0]+x,q[1]+z)<2.6) ok=false;
+    if(!ok) continue;
+    const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=ry;
+    const sz=PROPS[set[ki]]((geo,col,sx,sy,sz,px,py,pz,glow)=>{ const me=new THREE.Mesh(geo,glow?matB(col):mat(col,0,m.dark?.16:0)); me.scale.set(sx,sy,sz); me.position.set(px,py,pz); if(!glow) me.castShadow=me.receiveShadow=hi; g.add(me); return me; },hi,!!m.dark);
+    worldG.add(g); W.boxes.push({x0:x-sz[0]/2,x1:x+sz[0]/2,y0:0,y1:sz[1],z0:z-sz[0]/2,z1:z+sz[0]/2}); } }
 function buildDeco(m){ const S=m.S;
   if(m.dark){ const n=500, p=new Float32Array(n*3); for(let i=0;i<n;i++){ const a=Math.random()*6.283, e=Math.random()*1.3+.08, r=200; p[i*3]=Math.cos(a)*Math.cos(e)*r; p[i*3+1]=Math.sin(e)*r; p[i*3+2]=Math.sin(a)*Math.cos(e)*r; }
     const g=new THREE.BufferGeometry(); g.setAttribute("position",new THREE.BufferAttribute(p,3)); const st=new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:1.6,fog:false})); st.userData.own=1; worldG.add(st);
