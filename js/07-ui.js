@@ -66,8 +66,8 @@ function scrMissions(){ ensureDay(); const h=G.mis.map(x=>{ const m=MISSIONS.fin
     return `<div class="line"><div class="f"><b>${m.txt}</b><small>${v} / ${m.n}</small><div class="prog"><s style="width:${v/m.n*100}%"></s></div></div>${x.got?`<span class="chip">✔ 받음</span>`:`<button class="btn ${done?"y":"off"}" data-a="claim" data-v="${m.id}">🪙 ${m.rw}</button>`}</div>`; }).join("");
   UI.panel("🎯 오늘의 임무",h+`<div style="font-size:12px;opacity:.75">임무는 날마다 새로 바뀌어요.</div>`,"missions"); }
 function scrSettings(){ UI.panel("⚙️ 설정",`
-  <div class="line"><div class="f"><b>화면 돌리는 빠르기</b><small>${G.set.sens.toFixed(1)}배</small></div><input type="range" min="0.4" max="2.5" step="0.1" value="${G.set.sens}" id="sens"></div>
-  <div class="line"><div class="f"><b>자동 발사</b><small>조준점이 적에게 닿으면 알아서 쏴요 (휴대폰 추천)</small></div><button class="btn ${G.set.auto?"y":""}" data-a="tog" data-v="auto">${G.set.auto?"켜짐":"꺼짐"}</button></div>
+  <div class="line"><div class="f"><b>화면 돌리는 빠르기</b><small>${G.set.sens.toFixed(1)}배</small></div><input type="range" min="0.4" max="3.5" step="0.1" value="${G.set.sens}" id="sens"></div>
+  <div class="line"><div class="f"><b>자동 발사</b><small>알아서 쏘지만 한 박자 늦고, 덜 정확하고, 피해가 20% 적어요. 직접 쏘면 더 세요</small></div><button class="btn ${G.set.auto?"y":""}" data-a="tog" data-v="auto">${G.set.auto?"켜짐":"꺼짐"}</button></div>
   <div class="line"><div class="f"><b>조준 도움</b><small>조준점이 가까운 적 쪽으로 살짝 붙어요</small></div><button class="btn ${G.set.assist?"y":""}" data-a="tog" data-v="assist">${G.set.assist?"켜짐":"꺼짐"}</button></div>
   <div class="line"><div class="f"><b>조준 패드 (왼쪽 위)</b><small>패드를 민 방향으로 화면이 계속 돌아가요</small></div><button class="btn ${G.set.pad?"y":""}" data-a="tog" data-v="pad">${G.set.pad?"켜짐":"꺼짐"}</button></div>
   <div class="line"><div class="f"><b>소리</b></div><button class="btn ${G.set.snd?"y":""}" data-a="tog" data-v="snd">${G.set.snd?"켜짐":"꺼짐"}</button></div>

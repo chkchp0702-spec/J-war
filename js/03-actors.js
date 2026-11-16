@@ -84,7 +84,7 @@ function volAt(pos){ if(!P) return 0; return clamp(1-P.pos.distanceTo(pos)/50,0,
 /* o: 눈 위치, dir: 겨눈 방향. opt.sm 퍼짐 배율, opt.visual 보여 주기만(온라인 상대 총알) */
 function shoot(a,wkey,o,dir,opt){ opt=opt||{}; const w=WEAPONS[wkey]; a.kick=1; SFX.shoot(wkey,a===P?1:volAt(a.pos)); muzzleOf(a,_m);
   if(w.proj){ spawnProj(a,wkey,_m.clone(),dir.clone(),opt.visual); return; }
-  const n=w.pel||1, mag=a===P?(TOUCH?1.5:1.12):1;
+  const n=w.pel||1, mag=a===P?(TOUCH?1.3:1.1):1;
   for(let i=0;i<n;i++){ _d.copy(dir); const sp=w.spread*(opt.sm||1); if(sp>0){ _d.x+=rnd(-sp,sp); _d.y+=rnd(-sp,sp)*.8; _d.z+=rnd(-sp,sp); _d.normalize(); }
     let t=rayWorld(o,_d,w.range), hit=null, head=false;
     for(const b of ACT){ if(!b.alive||!hostile(a,b)) continue; const r=rayActor(o,_d,b,mag); if(r&&r.t<t){ t=r.t; hit=b; head=r.head; } }
