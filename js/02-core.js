@@ -35,11 +35,14 @@ const SFX = {
     if(k==="shotgun"){ noise(.22,.5*v,1400); tone(140,.15,"sawtooth",.2*v,50); }
     else if(k==="sniper"){ noise(.3,.5*v,2600); tone(300,.25,"sawtooth",.25*v,40); }
     else if(k==="rocket"){ noise(.35,.4*v,700); tone(200,.3,"sawtooth",.2*v,60); }
+    else if(k==="bounce"){ tone(520,.13,"sine",.24*v,170); noise(.05,.14*v,900); }
+    else if(k==="charge"){ noise(.14,.3*v,3200); tone(880,.2,"sawtooth",.18*v,110); }
     else if(k==="laser"){ tone(1300,.06,"sawtooth",.06*v,900); }
     else if(k==="ice"){ tone(900,.09,"triangle",.16*v,1500); noise(.05,.1*v,6000,"highpass"); }
     else if(k==="smg"||k==="minigun"){ noise(.06,.26*v,2600); tone(260,.05,"square",.09*v,120); }
     else if(k==="pistol"){ noise(.08,.3*v,3000); tone(520,.08,"square",.12*v,160); }
     else { noise(.08,.32*v,2200); tone(330,.07,"square",.12*v,110); } },
+  bounce(v){ if(v>.04) tone(380,.07,"sine",.16*v,620); },
   hit(){ tone(950,.04,"square",.12); }, head(){ tone(1500,.07,"square",.16); tone(2100,.09,"square",.12,0,.05); },
   kill(){ jingle([660,880,1320],.07,"square",.15); }, hurt(){ tone(160,.12,"sawtooth",.2,80); },
   jump(){ tone(300,.1,"sine",.15,520); }, jump2(){ tone(420,.1,"sine",.15,760); }, dash(){ noise(.18,.25,1800,"bandpass"); },

@@ -24,7 +24,7 @@ function botName(){ const u=usedNames(); const f=BOT_NAMES.filter(n=>!u[n]); ret
 function tickFreeze(dt){ if(M.freeze<=0) return; const a=Math.ceil(M.freeze); M.freeze-=dt; const b=Math.ceil(M.freeze); if(M.freeze<=0){ UI.banner("시작!","",.8); SFX.go(); } else if(a!==b&&b<=3){ UI.banner(String(b),"",.9); SFX.count(); } }
 
 /* ---------- 결투 (봇전) ---------- */
-function botWeapons(skill){ const p=["pistol","rifle","rifle"]; if(skill>.22) p.push("shotgun","smg"); if(skill>.4) p.push("sniper"); if(skill>.5) p.push("ice"); if(skill>.62) p.push("rocket"); if(skill>.78) p.push("laser"); return p; }
+function botWeapons(skill){ const p=["pistol","rifle","rifle"]; if(skill>.22) p.push("shotgun","smg"); if(skill>.4) p.push("sniper"); if(skill>.45) p.push("bounce"); if(skill>.5) p.push("ice"); if(skill>.7) p.push("charge"); if(skill>.62) p.push("rocket"); if(skill>.78) p.push("laser"); return p; }
 function startDuel(n){ const map=pick(MAP_KEYS), m=MAPS[map]; beginMatch("duel",map); const skill=botSkill();
   Object.assign(M,{n,sc:[0,0],round:0,need:3,skill,botDmg:lerp(.7,1.25,skill),onKill:duelKill}); const order=n===1?[1]:n===2?[0,2]:[1,0,2], wp=botWeapons(skill);
   spawnPlayer(m.t0[order[0]][0],m.t0[order[0]][1],0,0); P.home=m.t0[order[0]];

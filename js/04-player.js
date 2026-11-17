@@ -79,7 +79,7 @@ function playerFire(){ if(P.knifeOnly){ knife(); return; } const k=P.wkey, w=WEA
   if(P.ammo[P.wi]<=0){ reload(); return; }
   if(!(P.supT>0)) P.ammo[P.wi]--; P.cool=w.rate*P.rateMul*(P.supT>0?.6:1); dirFrom(P.yaw,P.pitch,_pd); _po.copy(camera.position);
   const mv=Math.hypot(P.vel.x,P.vel.z); let sm=1+(mv>3?.5:0)+(P.ground?0:.6); if(w.zoom) sm=camera.fov<40?1:w.hip/w.spread;
-  shoot(P,k,_po,_pd,{sm:sm*(P.autoShot?1.7:1),dm:(1+.02*stars(k))*(P.pwD>0?2:1)*(P.autoShot?.8:1)}); VM.kick=1; VM.flash=.05; P.fireT=M.t; ML.position.copy(camera.position).addScaledVector(_pd,1.2); ML.intensity=1.4; FX.shake=Math.max(FX.shake,k==="sniper"||k==="shotgun"||k==="rocket"?.26:.06); P.rec=Math.min(.09,P.rec+(k==="sniper"||k==="shotgun"||k==="rocket"?.05:.012));
+  const cg=w.chg?(P.chg||0):0; shoot(P,k,_po,_pd,{sm:sm*(P.autoShot?1.7:1),dm:(1+.02*stars(k))*(P.pwD>0?2:1)*(P.autoShot?.8:1)*(1+2*cg),tw:w.chg?.04+.1*cg:0}); if(cg>=1) FX.shake=Math.max(FX.shake,.26); VM.kick=1; VM.flash=.05; P.fireT=M.t; ML.position.copy(camera.position).addScaledVector(_pd,1.2); ML.intensity=1.4; FX.shake=Math.max(FX.shake,k==="sniper"||k==="shotgun"||k==="rocket"?.26:.06); P.rec=Math.min(.09,P.rec+(k==="sniper"||k==="shotgun"||k==="rocket"?.05:.012));
   if(M.type==="online") NET.shot(k,_po,_pd); if(P.ammo[P.wi]<=0) reload(); }
 function updatePlayer(dt){ if(!P) return; if(P.inv>0) P.inv-=dt; if(P.slowT>0) P.slowT-=dt; if(P.dashLeft>0) P.dashLeft-=dt; if(P.knifeCd>0) P.knifeCd-=dt; if(P.nadeCd>0) P.nadeCd-=dt; if(P.slideCd>0) P.slideCd-=dt; if(P.pwD>0) P.pwD-=dt; if(P.pwS>0) P.pwS-=dt; if(P.supT>0){ P.supT-=dt; if(P.supT<=0) P.dmgMul/=1.3; }
   const w=WEAPONS[P.wkey], frozen=M.freeze>0||M.phase!=="play";
@@ -100,7 +100,12 @@ function updatePlayer(dt){ if(!P) return; if(P.inv>0) P.inv-=dt; if(P.slowT>0) P
     P.cool-=dt; if(P.swT>0) P.swT-=dt; if(P.relT>0){ P.relT-=dt; if(P.relT<=0){ P.ammo[P.wi]=magOf(P.wi); SFX.reloaded(); } }
     aimAssist(dt); aimCheck(); I.onT=I.onTarget?(I.onT||0)+dt:0;
     const auto=G.set.auto&&I.onT>.22&&(!w.zoom||zoomed); P.autoShot=auto&&!I.fire;   /* 자동 발사: 0.22초 겨눈 뒤에 쏘고, 덜 정확하고 덜 아픔 */
-    if((I.fire||auto)&&!frozen&&(P.crouch<.4||P.slideT>0)) playerFire();
+    const canF=!frozen&&(P.crouch<.4||P.slideT>0);
+    if(w.chg&&!P.knifeOnly){ const rdy=canF&&P.cool<=0&&P.swT<=0&&P.relT<=0;   /* 모으기 총: 누르는 동안 모으고, 떼면 발사. 자동 발사는 안 모은 약한 한 발 */
+      if(I.fire&&rdy){ if(P.ammo[P.wi]<=0) reload(); else { const o=P.chg||0; if(o<=0) tone(260,w.chg,"sine",.05,980); P.chg=Math.min(1,o+dt/w.chg); if(o<1&&P.chg>=1) SFX.head(); } }
+      else if(P.chg>0){ P.autoShot=false; if(rdy) playerFire(); P.chg=0; }
+      else if(auto&&rdy) playerFire(); }
+    else { P.chg=0; if((I.fire||auto)&&canF) playerFire(); }
     P.bob+=dt*Math.hypot(P.vel.x,P.vel.z)*(P.ground?1.7:0);
     if(P.ground&&P.slideT<=0){ P.stepT-=dt*Math.hypot(P.vel.x,P.vel.z); if(P.stepT<=0){ P.stepT=2.7; SFX.step(); } }
   } else { P.vel.set(0,0,0); I.zoom=false; }
@@ -116,12 +121,14 @@ const VM = {g:new THREE.Group(),kick:0,flash:0,swx:0,swy:0,fl:null};
 function buildVM(key){ const g=VM.g; while(g.children.length) g.remove(g.children[0]); if(!g.parent) vmScene.add(g);
   const w=WEAPONS[key], L=w.len, ol=G.set.gfx>0, main=new THREE.MeshLambertMaterial({color:stars(key)>=5?0xffd700:w.col}), dark=new THREE.MeshLambertMaterial({color:0x1f2433}), light=new THREE.MeshLambertMaterial({color:0xeceff1}), skin=new THREE.MeshLambertMaterial({color:0xffd2a6}), slv=new THREE.MeshLambertMaterial({color:SKINS[G.skin].c});
   const mk=(sx,sy,sz,m,x,y,z,no)=>{ const me=new THREE.Mesh(UNIT,m); me.scale.set(sx,sy,sz); me.position.set(x,y,z); g.add(me); if(ol&&!no){ const q=new THREE.Mesh(UNIT,OUTM); q.scale.set(1+.014/sx,1+.014/sy,1+.014/sz); me.add(q); } return me; };
-  const fat=key==="rocket"?.15:key==="shotgun"?.1:key==="minigun"?.13:.08, long=L>=.5&&key!=="rocket";
+  VM.ch=null; const fat=key==="rocket"?.15:key==="bounce"?.13:key==="shotgun"?.1:key==="minigun"?.13:.08, long=L>=.5&&key!=="rocket";
   if(key==="knife"){ mk(.02,.1,.52,matB(0x80d8ff),0,.03,-.4); mk(.03,.13,.5,new THREE.MeshBasicMaterial({color:0x40c4ff,transparent:true,opacity:.35}),0,.03,-.4,1); mk(.1,.035,.05,light,0,.02,-.12); mk(.05,.055,.16,dark,0,.01,-.03); }
   else { mk(fat,fat*1.15,L,main,0,0,-L/2); mk(fat*.55,.02,L*.7,dark,0,fat*.6,-L*.5,1); mk(fat+.006,.028,L*.45,light,0,-.012,-L*.45,1);
     mk(.055,.15,.07,dark,0,-.11,-.07); if(key!=="pistol"&&key!=="rocket"&&key!=="laser") mk(.05,.17,.085,dark,0,-.13,-L*.42); if(long) mk(fat*.8,fat*1.35,.17,dark,0,-.015,.085);
     if(key==="rocket"){ mk(.11,.11,.1,dark,0,0,-L-.03); mk(.2,.2,.08,light,0,0,-.02); }
     else if(key==="minigun"){ [[-.035,.03],[.035,.03],[0,-.035]].forEach(p=>mk(.035,.035,.3,dark,p[0],p[1],-L-.13,1)); mk(.15,.15,.05,dark,0,0,-L+.02); }
+    else if(key==="bounce"){ mk(.16,.16,.06,dark,0,0,-L+.01); mk(.11,.11,.11,matB(0xffb74d),0,0,-L-.05,1); mk(.05,.1,.12,light,0,.1,-L*.45,1); }
+    else if(key==="charge"){ mk(.02,.05,L*.5,light,-.06,0,-L*.8,1); mk(.02,.05,L*.5,light,.06,0,-L*.8,1); mk(.05,.05,L*.5,matB(0x80ffff),0,.055,-L*.5,1); VM.ch=mk(1,1,1,matB(0xe0ffff),0,0,-L-.1,1); VM.ch.scale.setScalar(.03); }
     else if(key==="laser"){ mk(.03,.03,.25,matB(0xff80ab),0,0,-L-.1,1); mk(.1,.03,L*.6,light,0,.06,-L*.5,1); }
     else if(key==="ice"){ mk(.05,.05,.2,matB(0xe0f7fa),0,0,-L-.08,1); mk(.04,.12,.04,matB(0xb2ebf2),0,.09,-L*.6,1); mk(.04,.09,.04,matB(0xb2ebf2),0,.08,-L*.3,1); }
     else { mk(.045,.045,L*.4,dark,0,.005,-L-L*.15); mk(.06,.06,.05,light,0,.005,-L-L*.33,1); }
@@ -135,4 +142,6 @@ function updateVM(dt){ const g=VM.g; if(!P){ g.visible=false; return; } g.visibl
   const b=Math.sin(P.bob)*.012, b2=Math.abs(Math.cos(P.bob))*.012; let rx=VM.kick*.13, y=-.165-b2, z=-.36+VM.kick*.06;
   if(P.swT>0) y-=P.swT*1.2; if(P.relT>0){ const k=Math.sin(Math.PI*(1-P.relT/P.relFull)); y-=k*.16; rx-=k*.9; }
   g.position.set(.2+b-clamp(VM.swx,-.05,.05),y+clamp(VM.swy,-.04,.04),z); g.rotation.set(rx,.04-clamp(VM.swx,-.05,.05),0); if(VM.slash>0){ VM.slash-=dt; const k=Math.max(0,VM.slash)/.22; g.rotation.z=-k*1.5; g.rotation.y+=k*.9; g.position.x-=k*.22; g.position.z-=k*.12; }
+  const c=P.chg||0; if(VM.cgv!==c){ VM.cgv=c; $("cross").style.setProperty("--c",c>0?(.25+.75*c).toFixed(2):0); }   /* 모으는 동안 조준점에 줄어드는 고리 */
+  if(VM.ch){ VM.ch.scale.setScalar(.03+.11*c+(c>=1?Math.random()*.03:0)); VM.ch.rotation.z+=dt*(2+10*c); }
   if(VM.fl){ VM.flash-=dt; VM.fl.visible=VM.flash>0&&!WEAPONS[P.wkey].proj; if(VM.fl.visible){ VM.fl.rotation.z=Math.random()*6; VM.fl.scale.setScalar(rnd(.8,1.5)); } } }

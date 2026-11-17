@@ -1,6 +1,6 @@
 "use strict";
 /* ===== J war — 데이터 (무기 · 맵 · 임무 · 패치 노트) ===== */
-const VER = 9;
+const VER = 10;
 
 /* 무기: dmg 한 발 피해, rate 발사 간격(초), mag 탄창, rel 장전(초), spread 퍼짐, range 사거리 */
 const WEAPONS = {
@@ -10,7 +10,9 @@ const WEAPONS = {
   smg:     {n:"기관단총",   ic:"⚡", dmg:10, rate:.065,mag:40, rel:1.4, spread:.040, range:38,  cost:500,  col:0xffca28, len:.42, desc:"엄청 빠른 연사"},
   sniper:  {n:"저격총",     ic:"🔭", dmg:95, rate:1.1, mag:5,  rel:2.0, spread:.001, range:140, cost:800,  col:0x7e57c2, len:.78, zoom:26, hip:.05, desc:"조준하고 한 발! 머리는 한 방"},
   ice:     {n:"얼음총",     ic:"❄️", dmg:13, rate:.14, mag:25, rel:1.6, spread:.020, range:50,  cost:1200, col:0x80deea, len:.5,  slow:1.3, desc:"맞은 적이 느려짐"},
+  bounce:  {n:"통통총",     ic:"🏀", dmg:62, rate:.55, mag:6,  rel:1.7, spread:.004, range:60,  cost:1500, col:0xff9100, len:.5,  proj:30, splash:3.0, grav:9, bnc:2, desc:"벽·바닥에 통통 튕기는 폭탄 공"},
   rocket:  {n:"로켓포",     ic:"🚀", dmg:85, rate:1.1, mag:3,  rel:2.2, spread:.004, range:90,  cost:1800, col:0xef5350, len:.7,  proj:36, splash:4.6, desc:"펑! 로켓 점프도 가능"},
+  charge:  {n:"모으기 총",   ic:"🔋", dmg:30, rate:.4,  mag:8,  rel:1.6, spread:.004, range:90,  cost:2000, col:0x00e5ff, len:.6,  chg:1.1, desc:"꾹 눌러 모았다가 떼면 3배!"},
   laser:   {n:"레이저총",   ic:"🔆", dmg:6.5,rate:.045,mag:80, rel:1.8, spread:0,    range:80,  cost:2500, col:0xff4081, len:.6,  beam:1, desc:"끊기지 않는 빛줄기"},
   minigun: {n:"황금 미니건", ic:"👑", dmg:11, rate:.05, mag:120,rel:2.6, spread:.045, range:60,  cost:5000, col:0xffd700, len:.66, desc:"전설의 무기"},
 };
@@ -23,7 +25,7 @@ const HEAD_MUL = 1.6;
 const STAR_AT = [10,30,70,150,300];
 function stars(k){ const n=(G.wk&&G.wk[k])||0; let s=0; for(const t of STAR_AT) if(n>=t) s++; return s; }
 /* 총 바꾸기 모드의 총 순서 (마지막은 에너지 검) */
-const GG = ["pistol","smg","rifle","shotgun","ice","sniper","laser","rocket","minigun"];
+const GG = ["pistol","smg","rifle","shotgun","ice","bounce","sniper","charge","laser","rocket","minigun"];
 
 /* 꾸미기 */
 const SKINS = [
@@ -109,6 +111,13 @@ const MAP_KEYS = Object.keys(MAPS);
 
 /* 패치 노트 (새 버전은 맨 앞에 추가) */
 const PATCH = [
+  {v:10, d:"2026-11-17", t:"새 총 2개: 통통총 · 모으기 총", l:[
+    "🏀 통통총: 공이 벽과 바닥에 2번 튕긴 뒤 펑! 모퉁이 뒤에 숨은 적도 맞힐 수 있어요",
+    "🔋 모으기 총: 쏘기 버튼을 꾹 누르면 힘이 모이고, 떼면 발사! 끝까지 모으면 3배로 아파요",
+    "모으기 총은 자동 발사로는 약한 한 발만 나가요. 직접 모아서 쏴야 세요",
+    "무기고에서 코인으로 살 수 있고, 총 바꾸기 모드에도 나와요(11단계)",
+    "실력 좋은 봇도 새 총을 들고 나와요. 통통 튀는 공을 조심!",
+  ]},
   {v:9, d:"2026-11-16", t:"맵에 소품이 생겼어요", l:[
     "장난감 공장: 가로등, 드럼통, 꼬깔이 벽 쪽에 놓였어요",
     "사막 요새: 선인장, 나무통, 화살표 표지판이 생겼어요",
