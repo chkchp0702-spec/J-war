@@ -91,7 +91,8 @@ function shoot(a,wkey,o,dir,opt){ opt=opt||{}; const w=WEAPONS[wkey]; a.kick=1; 
     _e.copy(o).addScaledVector(_d,t); tracer(_m,_e,w.col,opt.tw||(w.beam?.07:(wkey==="sniper"?.09:.035)),w.beam?.07:(opt.tw?.18:.1)); if(M.type==="paint") paintAt(_e.x,_e.z,w.pel?1.4:2.1,a.team);
     if(hit){ if(!opt.visual){ let dmg=w.dmg*(a.dmgMul||1)*(opt.dm||1); if(w.pel) dmg*=clamp(1.3-t/w.range,.35,1); if(head) dmg*=HEAD_MUL*(a.headMul||1); damage(hit,dmg,a,{head,w:wkey,slow:w.slow}); }
       burst(_e,head?0xffd740:0xffffff,3,3,.08,.3); if(w.slow) burst(_e,0x80deea,2,2,.1,.4,2); }
-    else if(t<w.range) burst(_e,w.col,2,2.5,.07,.25); } }
+    else if(t<w.range) wallHit(_e,_d,w.col,wkey==="sniper"||opt.tw>.1); }
+  if(a===P&&!w.beam&&G.set.gfx>0){ const s=Math.sin(a.yaw), c=Math.cos(a.yaw); _d.set(c,.9,-s); _e.copy(_m).addScaledVector(dir,.25); burst(_e,0xe0a82e,1,2.4,.035,.7,13,_d); } }
 function spawnProj(a,wkey,pos,dir,visual){ const w=WEAPONS[wkey]; const m=new THREE.Mesh(UNIT,matB(w.grav?w.col:0xfff176)); if(w.grav) m.scale.set(.26,.26,.26); else m.scale.set(.16,.16,.55); m.position.copy(pos); _e.copy(pos).add(dir); m.lookAt(_e); fxG.add(m);
   PROJ.push({a,wkey,pos,dir,spd:w.proj,life:3.5,m,visual:!!visual,tr:0,grav:w.grav||0,bnc:w.bnc||0}); }
 /* 통통총: 부딪힌 면을 찾아 튕김 (바닥 → 옆벽 → 위아래 순서로 시험) */

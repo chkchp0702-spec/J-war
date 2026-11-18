@@ -63,6 +63,8 @@ function mat(col,tex,glow){ const k=col+"|"+(tex?1:0)+"|"+(glow||0); if(MATS[k])
   const m=new THREE.MeshLambertMaterial({color:col,map:tex?BOXTEX:null}); if(glow){ m.emissive=new THREE.Color(col); m.emissiveIntensity=glow; } return MATS[k]=m; }
 const BMATS = {};
 function matB(col){ return BMATS[col]||(BMATS[col]=new THREE.MeshBasicMaterial({color:col})); }
+const SMATS = {};   /* 연기용 반투명 */
+function matS(col){ return SMATS[col]||(SMATS[col]=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.5,depthWrite:false})); }
 function makeBoxTex(){ const c=document.createElement("canvas"); c.width=c.height=128; const x=c.getContext("2d");
   const g=x.createLinearGradient(0,0,0,128); g.addColorStop(0,"#ffffff"); g.addColorStop(1,"#d9d9d9"); x.fillStyle=g; x.fillRect(0,0,128,128);
   x.strokeStyle="rgba(0,0,0,.26)"; x.lineWidth=4; x.strokeRect(0,0,128,128); x.strokeStyle="rgba(255,255,255,.7)"; x.lineWidth=2; x.beginPath(); x.moveTo(5,5); x.lineTo(123,5); x.stroke();
@@ -212,17 +214,33 @@ function rayActor(o,d,a,mag){ const s=a.scale||1, w=.4*s*mag, hc=a.hsc||1; let b
   return best<0?null:{t:best,head}; }
 
 /* ---------- 이펙트 ---------- */
-const FX = {tr:[],pt:[],fl:[],ex:[],shake:0};
+const FX = {tr:[],pt:[],fl:[],ex:[],mk:[],mi:0,shake:0};
 const HS = {t:0}; function hitStop(s){ HS.t=Math.max(HS.t,s); }   /* 순간 멈춤(손맛) */
 const _v1 = V3(), _v2 = V3(), _v3 = V3();
 function tracer(from,to,col,w,life){ let t=FX.tr.find(x=>x.t<=0);
   if(!t){ if(FX.tr.length>48) return; const m=new THREE.Mesh(UNIT,new THREE.MeshBasicMaterial({color:col,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})); fxG.add(m); t={m,t:0,life:.1}; FX.tr.push(t); }
   const len=from.distanceTo(to); t.m.material.color.setHex(col); t.m.position.copy(from).add(to).multiplyScalar(.5); t.m.lookAt(to); t.m.scale.set(w||.04,w||.04,len); t.m.visible=true; t.life=t.t=life||.1; }
-function burst(pos,col,n,spd,size,life,grav){ for(let i=0;i<n;i++){ let p=FX.pt.find(x=>x.t<=0);
+function burst(pos,col,n,spd,size,life,grav,dir,gr){ for(let i=0;i<n;i++){ let p=FX.pt.find(x=>x.t<=0);
     if(!p){ if(FX.pt.length>150) return; const m=new THREE.Mesh(UNIT,matB(col)); fxG.add(m); p={m,v:V3(),t:0,life:1,g:0,s:.1}; FX.pt.push(p); }
-    p.m.material=matB(col); p.m.position.copy(pos); p.v.set(rnd(-1,1),rnd(-.3,1.2),rnd(-1,1)).normalize().multiplyScalar(spd*rnd(.4,1)); p.s=size||.1; p.g=grav==null?12:grav; p.life=p.t=(life||.5)*rnd(.6,1); p.m.visible=true; p.m.rotation.set(rnd(0,3),rnd(0,3),0); } }
+    p.m.material=gr?matS(col):matB(col); p.m.position.copy(pos); p.v.set(rnd(-1,1),rnd(-.3,1.2),rnd(-1,1)).normalize().multiplyScalar(spd*rnd(.4,1)); if(dir) p.v.addScaledVector(dir,spd*.9); p.gr=gr||0; p.s=size||.1; p.g=grav==null?12:grav; p.life=p.t=(life||.5)*rnd(.6,1); p.m.visible=true; p.m.rotation.set(rnd(0,3),rnd(0,3),0); } }
 function boomFx(pos,r,col){ const m=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),new THREE.MeshBasicMaterial({color:col||0xffa726,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})); m.position.copy(pos); fxG.add(m); FX.ex.push({m,t:.35,r});
-  burst(pos,0xffca28,14,9,.22,.6,10); burst(pos,0x616161,8,5,.3,.8,3); }
+  burst(pos,0xffca28,14,9,.22,.6,10);
+  if(G.set.gfx>0){ burst(pos,0xfff3c0,6,13,.1,.35,6); burst(pos,0x8a8a8a,6,4.5,.5,1.1,-1.6,null,1); burst(pos,0x555555,4,3,.4,1.3,-1.1,null,1);
+    const g=new THREE.Mesh(RINGG,new THREE.MeshBasicMaterial({color:0xffe0b2,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide})); g.rotation.x=-Math.PI/2; g.position.set(pos.x,Math.max(.06,pos.y-.3),pos.z); fxG.add(g); FX.ex.push({m:g,t:.35,r:r*1.5,keep:1}); }
+  else burst(pos,0x616161,8,5,.3,.8,3); }
+/* 총알 자국: 맞은 면에 붙는 납작한 자국. 처음엔 총 색으로 달아올랐다가 식고, 몇 초 뒤 사라짐 (20개를 돌려 씀) */
+const RINGG = new THREE.RingGeometry(.72,1,20), _nr = V3(), _np = V3(), _hot = new THREE.Color(), _cold = new THREE.Color(0x1c1c1c);
+function hitNormal(pt,d,out){ out.set(0,0,0); if(pt.y<.04&&d.y<0){ out.y=1; return out; }
+  _np.copy(pt).addScaledVector(d,-.06); let best=.2, ax="";
+  for(const k of ["x","z","y"]){ if(Math.abs(d[k])<.05) continue; _nr.set(0,0,0); _nr[k]=d[k]>0?1:-1; const t=rayWorld(_np,_nr,.2); if(t<best){ best=t; ax=k; } }
+  if(!ax) return null; out[ax]=d[ax]>0?-1:1; return out; }
+function bulletMark(pt,n,col,size){ if(!(G.set.gfx>0)) return; let k=FX.mk[FX.mi];
+  if(!k){ const m=new THREE.Mesh(UNIT,new THREE.MeshBasicMaterial({color:0x1c1c1c,transparent:true,depthWrite:false})); fxG.add(m); k=FX.mk[FX.mi]={m,t:0,c:0}; }
+  FX.mi=(FX.mi+1)%20; const s=size||.15, e=.014; k.m.scale.set(n.x?e:s,n.y?e:s,n.z?e:s); k.m.position.copy(pt).addScaledVector(n,.012); k.m.rotation.set(n.x?rnd(0,3):0,n.y?rnd(0,3):0,n.z?rnd(0,3):0); k.c=col; k.t=5; k.m.visible=true; }
+/* 벽·바닥에 맞았을 때: 튀는 불꽃 + 먼지 + 자국 */
+function wallHit(pt,d,col,big){ const n=hitNormal(pt,d,_v1);
+  if(!n||!(G.set.gfx>0)){ burst(pt,col,2,2.5,.07,.25); return; }
+  burst(pt,0xfff3c0,big?4:2,4.5,.055,.28,10,n); burst(pt,col,1,2.5,.07,.25,12,n); burst(pt,0x9e9e9e,1,.9,big?.3:.2,.45,-1,n,1); bulletMark(pt,n,col,big?.26:.15); }
 function floatText(pos,txt,col,size,life){ let f=FX.fl.find(x=>x.t<=0);
   if(!f){ if(FX.fl.length>22) f=FX.fl[0]; else { const el=document.createElement("span"); $("floats").appendChild(el); f={el,p:V3(),t:0,life:1}; FX.fl.push(f); } }
   f.el.textContent=txt; f.el.style.color=col||"#fff"; f.el.style.fontSize=(size||18)+"px"; f.p.copy(pos); f.p.x+=rnd(-.25,.25); f.life=f.t=life||.8; f.el.style.display="block"; }
@@ -230,14 +248,15 @@ function toScreen(v,out){ _v3.copy(v).project(camera); out.ok=_v3.z<1&&_v3.z>-1;
 const _sc = {x:0,y:0,ok:false};
 function updateFX(dt,time){
   for(const t of FX.tr){ if(t.t<=0) continue; t.t-=dt; if(t.t<=0){ t.m.visible=false; continue; } t.m.material.opacity=t.t/t.life; }
-  for(const p of FX.pt){ if(p.t<=0) continue; p.t-=dt; if(p.t<=0){ p.m.visible=false; continue; } p.v.y-=p.g*dt; p.m.position.addScaledVector(p.v,dt); if(p.m.position.y<.03){ p.m.position.y=.03; p.v.y*=-.35; p.v.x*=.6; p.v.z*=.6; } const s=p.s*(p.t/p.life); p.m.scale.set(s,s,s); }
-  for(let i=FX.ex.length-1;i>=0;i--){ const e=FX.ex[i]; e.t-=dt; if(e.t<=0){ fxG.remove(e.m); e.m.geometry.dispose(); e.m.material.dispose(); FX.ex.splice(i,1); continue; } const k=1-e.t/.35; e.m.scale.setScalar(e.r*(.3+k*.8)); e.m.material.opacity=1-k; }
+  for(const p of FX.pt){ if(p.t<=0) continue; p.t-=dt; if(p.t<=0){ p.m.visible=false; continue; } p.v.y-=p.g*dt; p.m.position.addScaledVector(p.v,dt); if(p.m.position.y<.03){ p.m.position.y=.03; p.v.y*=-.35; p.v.x*=.6; p.v.z*=.6; } const q=p.t/p.life; if(p.gr){ p.v.multiplyScalar(1-dt*2.2); const s=p.s*Math.min(1,.35+(1-q)*1.6)*Math.min(1,q/.3); p.m.scale.set(s,s,s); } else { const s=p.s*q; p.m.scale.set(s,s,s); } }
+  for(let i=FX.ex.length-1;i>=0;i--){ const e=FX.ex[i]; e.t-=dt; if(e.t<=0){ fxG.remove(e.m); if(!e.keep) e.m.geometry.dispose(); e.m.material.dispose(); FX.ex.splice(i,1); continue; } const k=1-e.t/.35; e.m.scale.setScalar(e.r*(.3+k*.8)); e.m.material.opacity=1-k; }
+  for(const k of FX.mk){ if(k.t<=0) continue; k.t-=dt; if(k.t<=0){ k.m.visible=false; continue; } const h=clamp((k.t-4.5)/.5,0,1); k.m.material.color.copy(_cold).lerp(_hot.setHex(k.c),h); k.m.material.opacity=Math.min(.85,k.t/1.2); }
   for(const f of FX.fl){ if(f.t<=0) continue; f.t-=dt; if(f.t<=0){ f.el.style.display="none"; continue; } f.p.y+=dt*1.1; toScreen(f.p,_sc); if(!_sc.ok){ f.el.style.opacity=0; continue; } f.el.style.opacity=Math.min(1,f.t/f.life*2); f.el.style.left=_sc.x+"px"; f.el.style.top=_sc.y+"px"; }
   for(const p of W.pads){ p.ring.position.y=.25+((time*1.4)%1)*1.1; p.ring.scale.setScalar(1-((time*1.4)%1)*.5); }
   for(const c of W.spin){ c.position.x+=dt*1.2; if(c.position.x>110) c.position.x=-110; }
   if(ML.intensity>0) ML.intensity=Math.max(0,ML.intensity-dt*16);
   if(FX.shake>0) FX.shake=Math.max(0,FX.shake-dt*2.5); }
-function clearFX(){ for(const t of FX.tr){ t.t=0; t.m.visible=false; } for(const p of FX.pt){ p.t=0; p.m.visible=false; } for(const f of FX.fl){ f.t=0; f.el.style.display="none"; } for(const e of FX.ex){ fxG.remove(e.m); } FX.ex.length=0; FX.shake=0; }
+function clearFX(){ for(const t of FX.tr){ t.t=0; t.m.visible=false; } for(const p of FX.pt){ p.t=0; p.m.visible=false; } for(const f of FX.fl){ f.t=0; f.el.style.display="none"; } for(const e of FX.ex){ fxG.remove(e.m); } FX.ex.length=0; for(const k of FX.mk){ k.t=0; k.m.visible=false; } FX.shake=0; }
 
 let toastT=null;
 function toast(msg,sec){ const t=$("toast"); t.textContent=msg; t.classList.add("s"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("s"),(sec||2.2)*1000); }
