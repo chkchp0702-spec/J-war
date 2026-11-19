@@ -36,7 +36,7 @@ const NET = {peers:{},room:"",on:false,clients:[],up:0,seq:0,seen:{},seenN:0,fin
       onmessage:(t,msg)=>{ let d; try{ d=JSON.parse(msg); }catch(e){ return; } try{ NET.recv(d); }catch(e){ console.warn(e); } } }); NET.clients.push(c); }); NET.pill(); },
   leave(){ if(!NET.on) return; NET.send({t:"bye"}); NET.on=false; NET.clients.forEach(c=>{ try{ c.close(); }catch(e){} }); NET.clients=[]; if(NET.bc){ NET.bc.close(); NET.bc=null; } NET.peers={}; NET.room=""; NET.up=0; NET.cur=null; NET.pill(); },
   send(o){ if(!NET.on) return; o.i=G.id; o.q=++NET.seq; const s=JSON.stringify(o); if(NET.bc){ NET.bc.postMessage(s); return; } const tp=NET.topic(); NET.clients.forEach(c=>{ if(c.ok) try{ c.publish(tp,s); }catch(e){} }); },
-  hello(){ NET.send({t:"hi",n:G.name||"친구",sk:G.skin,ht:G.hat,j:NET.join,w:P?P.wkey:G.eq[0]}); if(NET.isHost()&&NET.cur&&NET.cur.end>Date.now()+1500) NET.send({t:"gm",map:NET.cur.map,mid:NET.cur.mid,left:NET.cur.end-Date.now()}); },
+  hello(){ NET.send({t:"hi",n:G.name||"친구",sk:0,ht:0,j:NET.join,w:P?P.wkey:G.eq[0]}); if(NET.isHost()&&NET.cur&&NET.cur.end>Date.now()+1500) NET.send({t:"gm",map:NET.cur.map,mid:NET.cur.mid,left:NET.cur.end-Date.now()}); },
   isHost(){ let j=NET.join, id=G.id; for(const k in NET.peers){ const p=NET.peers[k]; if(p.j&&(p.j<j||(p.j===j&&p.id<id))){ j=p.j; id=p.id; } } return id===G.id; },
   count(){ return Object.keys(NET.peers).length+1; },
   startMatch(map){ if(!NET.isHost()) return; const cfg={map,mid:Date.now()%1e9,end:Date.now()+184000}; NET.cur=cfg; NET.send({t:"gm",map,mid:cfg.mid,left:cfg.end-Date.now()}); startOnline(cfg); },
@@ -53,6 +53,7 @@ const NET = {peers:{},room:"",on:false,clients:[],up:0,seq:0,seen:{},seenN:0,fin
     else if(d.t==="sh"){ if(a&&a.alive&&WEAPONS[d.w]&&d.o&&d.d){ a.wkey=d.w; shoot(a,d.w,_no.set(+d.o[0],+d.o[1],+d.o[2]),_nd.set(+d.d[0],+d.d[1],+d.d[2]).normalize(),{visual:true}); } }
     else if(d.t==="hit"){ if(a) netHit(d,a); }
     else if(d.t==="dead"){ if(a) netDead(d,a); }
+    else if(d.t==="em"){ if(a) netEmote(d,a); }
     else if(d.t==="gm"){ const left=+d.left||0; if(left<4000||NET.finished[d.mid]||!MAPS[d.map]) return; const cfg={map:d.map,mid:d.mid,end:Date.now()+left}; NET.cur=cfg;
       if(!M.active&&UI.scr==="lobby") startOnline(cfg); } },
   drop(p,why){ delete NET.peers[p.id]; const a=ACT.find(x=>x.id===p.id&&x.remote); if(a) removeActor(a); if(p.known) toast(p.n+" "+why); NET.pill(); },

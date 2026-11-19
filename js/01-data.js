@@ -1,20 +1,18 @@
 "use strict";
-/* ===== J war — 데이터 (무기 · 맵 · 임무 · 패치 노트) ===== */
-const VER = 11;
+/* ===== J war — 데이터 (무기 · 춤 · 등급 · 맵 · 임무 · 패치 노트) ===== */
+const VER = 12;
 
-/* 무기: dmg 한 발 피해, rate 발사 간격(초), mag 탄창, rel 장전(초), spread 퍼짐, range 사거리 */
+/* 무기: dmg 한 발 피해, rate 발사 간격(초), mag 탄창, rel 장전(초), spread 퍼짐, range 사거리, cost 열쇠 값
+   ads 조준할 때 화면 배율(작을수록 크게 보임), scope 저격 조준 2단계 화면 각도, brst 점사 발 수 */
 const WEAPONS = {
-  pistol:  {n:"블래스터",   ic:"🔫", dmg:26, rate:.22, mag:12, rel:1.0, spread:.010, range:70,  cost:0,    col:0x4fc3f7, len:.34, desc:"정확한 기본 총"},
-  rifle:   {n:"돌격소총",   ic:"🎯", dmg:15, rate:.105,mag:30, rel:1.5, spread:.022, range:70,  cost:0,    col:0x66bb6a, len:.56, desc:"다다다! 무난하게 강함"},
-  shotgun: {n:"샷건",       ic:"💥", dmg:10, rate:.75, mag:6,  rel:1.7, spread:.085, range:24,  cost:300,  col:0xff7043, len:.5,  pel:8, desc:"가까이서 한 방"},
-  smg:     {n:"기관단총",   ic:"⚡", dmg:10, rate:.065,mag:40, rel:1.4, spread:.040, range:38,  cost:500,  col:0xffca28, len:.42, desc:"엄청 빠른 연사"},
-  sniper:  {n:"저격총",     ic:"🔭", dmg:95, rate:1.1, mag:5,  rel:2.0, spread:.001, range:140, cost:800,  col:0x7e57c2, len:.78, zoom:26, hip:.05, desc:"조준하고 한 발! 머리는 한 방"},
-  ice:     {n:"얼음총",     ic:"❄️", dmg:13, rate:.14, mag:25, rel:1.6, spread:.020, range:50,  cost:1200, col:0x80deea, len:.5,  slow:1.3, desc:"맞은 적이 느려짐"},
-  bounce:  {n:"통통총",     ic:"🏀", dmg:62, rate:.55, mag:6,  rel:1.7, spread:.004, range:60,  cost:1500, col:0xff9100, len:.5,  proj:30, splash:3.0, grav:9, bnc:2, desc:"벽·바닥에 통통 튕기는 폭탄 공"},
-  rocket:  {n:"로켓포",     ic:"🚀", dmg:85, rate:1.1, mag:3,  rel:2.2, spread:.004, range:90,  cost:1800, col:0xef5350, len:.7,  proj:36, splash:4.6, desc:"펑! 로켓 점프도 가능"},
-  charge:  {n:"모으기 총",   ic:"🔋", dmg:30, rate:.4,  mag:8,  rel:1.6, spread:.004, range:90,  cost:2000, col:0x00e5ff, len:.6,  chg:1.1, desc:"꾹 눌러 모았다가 떼면 3배!"},
-  laser:   {n:"레이저총",   ic:"🔆", dmg:6.5,rate:.045,mag:80, rel:1.8, spread:0,    range:80,  cost:2500, col:0xff4081, len:.6,  beam:1, desc:"끊기지 않는 빛줄기"},
-  minigun: {n:"황금 미니건", ic:"👑", dmg:11, rate:.05, mag:120,rel:2.6, spread:.045, range:60,  cost:5000, col:0xffd700, len:.66, desc:"전설의 무기"},
+  rifle:   {n:"돌격소총",       ic:"🎯", dmg:15, rate:.105,mag:30, rel:1.5, spread:.022, range:140, cost:0,   col:0x66bb6a, len:.56, ads:.68, desc:"다다다! 무난하게 강함"},
+  pistol:  {n:"권총",           ic:"🔫", dmg:26, rate:.22, mag:12, rel:1.0, spread:.010, range:110, cost:0,   col:0x4fc3f7, len:.34, ads:.8,  desc:"정확한 기본 총"},
+  shotgun: {n:"샷건",           ic:"💥", dmg:10, rate:.75, mag:6,  rel:1.7, spread:.075, range:48,  cost:15,  col:0xff7043, len:.5,  ads:.85, pel:8, desc:"가까이서 한 방"},
+  burst:   {n:"점사소총",       ic:"🔱", dmg:19, rate:.46, mag:24, rel:1.6, spread:.007, range:170, cost:25,  col:0x26c6da, len:.62, ads:.55, brst:3, desc:"한 번에 세 발! 멀리서도 정확"},
+  launcher:{n:"폭탄발사기",     ic:"💣", dmg:80, rate:.7,  mag:4,  rel:2.0, spread:.004, range:120, cost:50,  col:0xff9100, len:.5,  ads:.8,  proj:32, splash:3.8, grav:9, bnc:1, desc:"펑! 한 번 튕기고 터지는 폭탄"},
+  sniper:  {n:"저격소총",       ic:"🔭", dmg:95, rate:1.1, mag:5,  rel:2.0, spread:0,    range:300, cost:75,  col:0x7e57c2, len:.78, scope:[20,8], hip:.05, desc:"2단계 조준경. 머리는 한 방!"},
+  minigun: {n:"미니건",         ic:"⚙️", dmg:11, rate:.05, mag:150,rel:2.6, spread:.040, range:120, cost:100, col:0xffd700, len:.66, ads:.85, desc:"멈추지 않는 총알 비"},
+  rainbow: {n:"무지개 레이저총", ic:"🌈", dmg:7.5,rate:.045,mag:100,rel:1.8, spread:0,    range:160, cost:120, col:0xff4081, len:.6,  ads:.7,  beam:1, rb:1, desc:"일곱 빛깔 빛줄기! 최고의 총"},
 };
 const WKEYS = Object.keys(WEAPONS);
 /* 늘 들고 다니는 것: 에너지 검(근접) · 폭탄(던지기) — 무기고에는 안 나옴 */
@@ -25,56 +23,48 @@ const HEAD_MUL = 1.6;
 const STAR_AT = [10,30,70,150,300];
 function stars(k){ const n=(G.wk&&G.wk[k])||0; let s=0; for(const t of STAR_AT) if(n>=t) s++; return s; }
 /* 총 바꾸기 모드의 총 순서 (마지막은 에너지 검) */
-const GG = ["pistol","smg","rifle","shotgun","ice","bounce","sniper","charge","laser","rocket","minigun"];
+const GG = ["pistol","rifle","shotgun","burst","launcher","sniper","minigun","rainbow"];
 
-/* 꾸미기 */
-const SKINS = [
-  {n:"파랑",c:0x2979ff,cost:0},{n:"빨강",c:0xff3d3d,cost:100},{n:"초록",c:0x2ecc71,cost:100},{n:"노랑",c:0xffd600,cost:150},
-  {n:"보라",c:0x9c27ff,cost:150},{n:"분홍",c:0xff5fa2,cost:200},{n:"하양",c:0xf2f2f2,cost:250},{n:"검정",c:0x2b2b33,cost:300},
-  {n:"민트",c:0x1de9b6,cost:400},{n:"황금",c:0xffc400,cost:1500},
-];
-const HATS = [
-  {n:"없음",ic:"🚫",cost:0},{n:"모자",ic:"🧢",cost:150},{n:"왕관",ic:"👑",cost:800},{n:"뿔",ic:"😈",cost:300},
-  {n:"안테나",ic:"📡",cost:200},{n:"천사 고리",ic:"😇",cost:500},{n:"중절모",ic:"🎩",cost:400},
-];
+/* 내 캐릭터 색 (꾸미기는 없어짐) */
+const PCOL = 0x2979ff;
 
-/* 등급 */
+/* 💃 춤 5가지. 등급: 1 초록(표현) · 2 파랑(춤) · 3 빨강(실감 나는 춤). 한 단계마다 열쇠 100개 */
+const DANCES = [
+  {id:"wave",  ic:"👋", n:"인사",     d:["손을 흔들어요","손 흔들며 좌우로 흔들흔들","두 팔 물결 + 스텝 + 한 바퀴"]},
+  {id:"disco", ic:"🕺", n:"디스코",   d:["하늘을 콕 찔러요","찌르고 내리고 리듬 타기","허리 흔들기 + 번갈아 찌르기 + 회전"]},
+  {id:"jump",  ic:"🤸", n:"팔짝",     d:["한 번 팔짝 뛰어요","팔 벌려 뛰기를 계속","팔 벌려 뛰기 + 공중 회전 + 착지 포즈"]},
+  {id:"spin",  ic:"🌀", n:"빙글빙글", d:["제자리에서 한 바퀴","팔 벌리고 빙글빙글","빠른 회전 + 멈춤 포즈 + 반대 회전"]},
+  {id:"robot", ic:"🤖", n:"로봇 춤",   d:["삐빅! 팔을 딱 들어요","딱딱 끊어지는 로봇 팔","로봇 팔 + 고개 까딱 + 로봇 걸음"]},
+];
+const DGRADE = [null,{n:"초록",c:"#4caf50",t:"표현",sec:1.8},{n:"파랑",c:"#2196f3",t:"춤",sec:4.2},{n:"빨강",c:"#f44336",t:"실감 나는 춤",sec:7.2}];
+const DANCE_STEP = 100;
+
+/* 등급: 결투를 10번 이길 때마다 한 단계 (브론즈부터) */
 const TIERS = [
-  {n:"브론즈",t:0,c:"#cd7f32"},{n:"실버",t:100,c:"#cfd8dc"},{n:"골드",t:250,c:"#ffd54f"},
-  {n:"플래티넘",t:450,c:"#80deea"},{n:"다이아",t:700,c:"#b388ff"},{n:"챔피언",t:1000,c:"#ff5252"},
+  {n:"브론즈",c:"#cd7f32",ic:"🥉"},{n:"실버",c:"#cfd8dc",ic:"🥈"},{n:"골드",c:"#ffd54f",ic:"🥇"},{n:"플래티넘",c:"#80deea",ic:"💠"},
+  {n:"다이아몬드",c:"#82b1ff",ic:"💎"},{n:"오닉스",c:"#b388ff",ic:"🔮"},{n:"네메시스",c:"#ff5252",ic:"👹"},{n:"아크 네메시스",c:"#ffd700",ic:"👑"},
 ];
-function tierOf(t){ let r=TIERS[0]; for(const x of TIERS) if(t>=x.t) r=x; return r; }
+const TIER_WINS = 10;
+function tierIdx(w){ return Math.min(TIERS.length-1,Math.floor((w||0)/TIER_WINS)); }
+function tierOf(w){ return TIERS[tierIdx(w)]; }
+/* 열쇠 보상 */
+const KEY_WIN = [6,8,10], KEY_LOSE = 2, KEY_TIER = 10, KEY_LV = 2;
 
 const BOT_NAMES = ["번개","로켓","코코","타이거","제트","슈퍼문","블리츠","팡팡","킹콩","나노","루키","스톰","치타","불꽃","별똥별","호두"];
 
-/* 오늘의 임무 (날마다 3개) */
+/* 오늘의 임무 (날마다 3개) — 보상은 열쇠 */
 const MISSIONS = [
-  {id:"k15", k:"kills",   n:15, txt:"적 15명 아웃시키기",      rw:100},
-  {id:"k30", k:"kills",   n:30, txt:"적 30명 아웃시키기",      rw:180},
-  {id:"hs5", k:"hs",      n:5,  txt:"헤드샷 5번",              rw:120},
-  {id:"dw2", k:"duelWin", n:2,  txt:"결투 2번 이기기",          rw:150},
-  {id:"wv5", k:"wave",    n:5,  txt:"로봇 웨이브 5 도달",       rw:120},
-  {id:"wv8", k:"wave",    n:8,  txt:"로봇 웨이브 8 도달",       rw:200},
-  {id:"ds15",k:"dash",    n:15, txt:"대시 15번 쓰기",           rw:80},
-  {id:"gm3", k:"games",   n:3,  txt:"아무 게임이나 3판 하기",   rw:100},
-  {id:"on1", k:"online",  n:1,  txt:"친구와 대결 1판 하기",     rw:150},
-  {id:"sl10",k:"slide",   n:10, txt:"슬라이딩 10번 하기",        rw:80},
-  {id:"kn3", k:"knife",   n:3,  txt:"에너지 검으로 3명 아웃",    rw:150},
-  {id:"st3", k:"streak",  n:3,  txt:"한 번도 안 죽고 3연속 아웃", rw:130},
-];
-
-/* 웨이브 강화 카드 */
-const UPGRADES = [
-  {id:"dmg", ic:"💪", n:"공격력 +25%",   d:"모든 무기가 더 세짐",       f:p=>p.dmgMul*=1.25},
-  {id:"hp",  ic:"❤️", n:"최대 체력 +30", d:"체력도 가득 회복",          f:p=>{p.maxhp+=30;p.hp=p.maxhp;}},
-  {id:"spd", ic:"👟", n:"이동 속도 +12%",d:"더 빠르게 달림",            f:p=>p.speed*=1.12},
-  {id:"rate",ic:"⚡", n:"연사 속도 +18%",d:"더 빨리 쏨",                f:p=>p.rateMul*=.85},
-  {id:"mag", ic:"📦", n:"탄창 +50%",     d:"장전 없이 더 많이",         f:p=>p.magMul*=1.5},
-  {id:"rel", ic:"🔄", n:"장전 속도 +30%",d:"순식간에 장전",             f:p=>p.relMul*=.7},
-  {id:"reg", ic:"🩹", n:"자동 회복 2배", d:"안 맞으면 빨리 회복",       f:p=>p.regenMul*=2},
-  {id:"dash",ic:"💨", n:"대시 쿨타임 -30%",d:"더 자주 대시",            f:p=>p.dashCd*=.7},
-  {id:"head",ic:"🎯", n:"헤드샷 +40%",   d:"머리를 맞히면 더 아픔",     f:p=>p.headMul*=1.4},
-  {id:"heal",ic:"🍀", n:"체력 가득 + 방패",d:"다음 웨이브 5초 무적",    f:p=>{p.hp=p.maxhp;p.shieldNext=5;}},
+  {id:"k15", k:"kills",   n:15, txt:"적 15명 아웃시키기",      rw:3},
+  {id:"k30", k:"kills",   n:30, txt:"적 30명 아웃시키기",      rw:5},
+  {id:"hs5", k:"hs",      n:5,  txt:"헤드샷 5번",              rw:4},
+  {id:"dw2", k:"duelWin", n:2,  txt:"결투 2번 이기기",          rw:5},
+  {id:"ds15",k:"dash",    n:15, txt:"대시 15번 쓰기",           rw:3},
+  {id:"gm3", k:"games",   n:3,  txt:"아무 게임이나 3판 하기",   rw:3},
+  {id:"on1", k:"online",  n:1,  txt:"친구와 대결 1판 하기",     rw:4},
+  {id:"sl10",k:"slide",   n:10, txt:"슬라이딩 10번 하기",        rw:3},
+  {id:"kn3", k:"knife",   n:3,  txt:"에너지 검으로 3명 아웃",    rw:4},
+  {id:"st3", k:"streak",  n:3,  txt:"한 번도 안 죽고 3연속 아웃", rw:4},
+  {id:"dc3", k:"dance",   n:3,  txt:"춤 3번 추기",               rw:3},
 ];
 
 /* 맵: B(x, 바닥y, z, 가로, 높이, 세로, 색, 대칭) · PAD(x, z, 힘, 대칭) */
@@ -111,6 +101,17 @@ const MAP_KEYS = Object.keys(MAPS);
 
 /* 패치 노트 (새 버전은 맨 앞에 추가) */
 const PATCH = [
+  {v:12, d:"2026-11-19", t:"대개편: 열쇠 · 9전 5선승 · 등급 · 춤 · 정밀 저격", l:[
+    "🔑 코인이 열쇠로 바뀌었어요. 결투를 이기면 열쇠를 받고, 열쇠로 총과 춤을 사요",
+    "🔫 열쇠 무기: 샷건 15 · 점사소총 25 · 폭탄발사기 50 · 저격소총 75 · 미니건 100 · 무지개 레이저총 120",
+    "⚔️ 결투가 1대1부터 5대5까지! 9전 5선승제, 4판을 이기면 「매치 포인트」가 떠요",
+    "🏅 등급: 브론즈부터 시작해서 결투를 10번 이길 때마다 한 단계씩 올라가요",
+    "📊 랭크 화면: 내 등급, 승패, 연승, 최근 경기 기록을 볼 수 있어요",
+    "🔭 정밀 저격: 저격소총은 조준경 2단계(조준 버튼을 한 번 더). 확대할수록 화면이 천천히 움직여서 정확하게 맞혀요. 조준경에 거리도 나와요",
+    "🎯 모든 총에 조준 버튼이 생기고, 총들의 사정거리가 훨씬 길어졌어요",
+    "💃 춤 버튼: 춤 5가지를 열쇠로 사요. 초록(표현) → 파랑(춤) → 빨강(실감 나는 춤), 한 단계에 열쇠 100개",
+    "🧹 없어진 것: 숨기 버튼, 색칠 대결, 로봇 웨이브, 꾸미기",
+    "예전에 산 샷건·저격총·미니건은 그대로 있고, 남은 코인은 100개에 열쇠 1개로 바꿔 드렸어요"]},
   {v:11, d:"2026-11-18", t:"총알 자국 · 불꽃 · 탄피 · 폭발 연기", l:[
     "🧱 벽이나 바닥을 쏘면 자국이 남아요. 처음엔 총 색으로 빛나다가 까맣게 식고, 조금 뒤 사라져요",
     "✨ 총알이 맞은 곳에서 불꽃과 먼지가 튀고, 총을 쏘면 옆으로 노란 탄피가 톡 떨어져요",

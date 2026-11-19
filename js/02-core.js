@@ -7,10 +7,15 @@ const V3 = (x,y,z) => new THREE.Vector3(x||0,y||0,z||0);
 
 /* ---------- 저장 ---------- */
 const SAVE_KEY = "jwar-save-1";
-function defSave(){ return {name:"",coins:0,xp:0,tro:0,own:{pistol:1,rifle:1},eq:["rifle","pistol"],skin:0,hat:0,ownSkin:{0:1},ownHat:{0:1},
-  best:{wave:0,kills:0},stat:{k:0,hs:0,win:0,games:0},wk:{},day:"",dayc:{},mis:[],set:{sens:1,auto:TOUCH?1:0,assist:TOUCH?1:0,pad:TOUCH?1:0,snd:1,gfx:1,diff:1},id:Math.random().toString(36).slice(2,10),seenVer:0}; }
+function defSave(){ return {sv:12,name:"",keys:0,xp:0,rw:0,own:{pistol:1,rifle:1},eq:["rifle","pistol"],dn:{},rec:{w:0,l:0,cur:0,best:0,m:{}},hist:[],
+  best:{kills:0},stat:{k:0,hs:0,win:0,games:0},wk:{},day:"",dayc:{},mis:[],set:{sens:1,scope:1,auto:TOUCH?1:0,assist:TOUCH?1:0,pad:TOUCH?1:0,snd:1,gfx:1,diff:1},id:Math.random().toString(36).slice(2,10),seenVer:0}; }
 let G = defSave();
-try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)||"null"); if(s){ const d=defSave(); G=Object.assign(d,s); G.set=Object.assign(defSave().set,s.set||{}); G.best=Object.assign({wave:0,kills:0},s.best||{}); G.stat=Object.assign({k:0,hs:0,win:0,games:0},s.stat||{}); } }catch(e){}
+try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)||"null"); if(s){ const d=defSave(), old=(s.sv||0)<12; G=Object.assign(d,s); G.set=Object.assign(defSave().set,s.set||{}); G.best=Object.assign({kills:0},s.best||{}); G.stat=Object.assign({k:0,hs:0,win:0,games:0},s.stat||{}); G.rec=Object.assign(defSave().rec,s.rec||{}); G.rec.m=G.rec.m||{};
+    if(old){ /* v12: 코인 → 열쇠, 옛 총 정리, 등급은 브론즈부터 */
+      const o=s.own||{}; G.keys=Math.min(30,Math.floor((s.coins||0)/100)); G.own={pistol:1,rifle:1}; ["shotgun","sniper","minigun"].forEach(k=>{ if(o[k]) G.own[k]=1; }); if(o.laser) G.own.rainbow=1; if(o.bounce||o.rocket) G.own.launcher=1;
+      G.rw=0; G.dn={}; G.hist=[]; G.day=""; G.mis=[]; ["coins","tro","skin","hat","ownSkin","ownHat"].forEach(k=>delete G[k]); delete G.best.wave; G.sv=12; }
+    G.eq=(G.eq||[]).slice(0,2); for(let i=0;i<2;i++) if(!WEAPONS[G.eq[i]]||!G.own[G.eq[i]]||G.eq[i]==="knife"||G.eq[i]==="grenade") G.eq[i]=i?"pistol":"rifle"; if(G.eq[0]===G.eq[1]) G.eq[1]=G.eq[0]==="pistol"?"rifle":"pistol";
+    if(old) localStorage.setItem(SAVE_KEY,JSON.stringify(G)); } }catch(e){}
 function save(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(G)); }catch(e){} }
 function lvOf(xp){ return Math.floor(Math.sqrt(xp/60))+1; }
 function lvXp(lv){ return (lv-1)*(lv-1)*60; }
@@ -34,12 +39,10 @@ const SFX = {
     if(k==="grenade"){ tone(300,.16,"sine",.16*v,140); return; }
     if(k==="shotgun"){ noise(.22,.5*v,1400); tone(140,.15,"sawtooth",.2*v,50); }
     else if(k==="sniper"){ noise(.3,.5*v,2600); tone(300,.25,"sawtooth",.25*v,40); }
-    else if(k==="rocket"){ noise(.35,.4*v,700); tone(200,.3,"sawtooth",.2*v,60); }
-    else if(k==="bounce"){ tone(520,.13,"sine",.24*v,170); noise(.05,.14*v,900); }
-    else if(k==="charge"){ noise(.14,.3*v,3200); tone(880,.2,"sawtooth",.18*v,110); }
-    else if(k==="laser"){ tone(1300,.06,"sawtooth",.06*v,900); }
-    else if(k==="ice"){ tone(900,.09,"triangle",.16*v,1500); noise(.05,.1*v,6000,"highpass"); }
-    else if(k==="smg"||k==="minigun"){ noise(.06,.26*v,2600); tone(260,.05,"square",.09*v,120); }
+    else if(k==="launcher"){ tone(520,.13,"sine",.24*v,170); noise(.08,.2*v,900); }
+    else if(k==="rainbow"){ tone(900+Math.random()*900,.06,"sawtooth",.06*v,700); }
+    else if(k==="burst"){ noise(.06,.3*v,3400); tone(420,.05,"square",.11*v,150); }
+    else if(k==="minigun"){ noise(.06,.26*v,2600); tone(260,.05,"square",.09*v,120); }
     else if(k==="pistol"){ noise(.08,.3*v,3000); tone(520,.08,"square",.12*v,160); }
     else { noise(.08,.32*v,2200); tone(330,.07,"square",.12*v,110); } },
   bounce(v){ if(v>.04) tone(380,.07,"sine",.16*v,620); },

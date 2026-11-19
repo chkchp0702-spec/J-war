@@ -38,6 +38,10 @@ button{font-family:inherit;color:inherit;border:0;cursor:pointer}
 #scope{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,transparent 0,transparent 37vh,#000 37.6vh);}
 #scope:before,#scope:after{content:"";position:absolute;background:#000}
 #scope:before{left:50%;top:13vh;bottom:13vh;width:1px}#scope:after{top:50%;left:calc(50% - 37vh);right:calc(50% - 37vh);height:1px}
+#scDot{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px;border-radius:50%;background:rgba(255,255,255,.55);box-shadow:0 0 0 1px #000}
+#scDot.o{background:#ff1744;box-shadow:0 0 8px 2px #ff1744}#scDot.h{background:#ffd740;box-shadow:0 0 10px 3px #ffd740;transform:scale(1.5)}
+#scope u{position:absolute;left:calc(50% - 5px);width:11px;height:1px;background:#000}#scope u:nth-of-type(1){top:calc(50% + 5vh)}#scope u:nth-of-type(2){top:calc(50% + 10vh)}#scope u:nth-of-type(3){top:calc(50% + 15vh)}#scope u:nth-of-type(4){top:calc(50% + 20vh);width:21px;left:calc(50% - 10px)}
+#scInfo{position:absolute;left:0;right:0;top:calc(50% + 27vh);text-align:center;font-weight:900;font-size:14px;color:#b9f6ca;text-shadow:0 1px 3px #000}
 #vign{position:absolute;inset:0;box-shadow:inset 0 0 120px 40px rgba(255,30,30,.85);opacity:0}
 #frost{position:absolute;inset:0;box-shadow:inset 0 0 100px 30px rgba(120,220,255,.8);opacity:0;transition:opacity .2s}
 #dmgInd{position:absolute;left:50%;top:50%;width:0;height:0}
@@ -50,6 +54,9 @@ button{font-family:inherit;color:inherit;border:0;cursor:pointer}
 #top{position:absolute;left:50%;top:8px;transform:translateX(-50%);display:flex;gap:8px;align-items:center;font-weight:900;text-shadow:0 2px 3px #000}
 #top .sc{min-width:46px;text-align:center;font-size:22px;padding:2px 10px;border-radius:10px;background:rgba(33,150,243,.85)}
 #top .sc.r{background:rgba(244,67,54,.85)}
+#top .sc.mpt{box-shadow:0 0 0 3px #ffd740,0 0 14px #ffd740;animation:pulse .6s infinite alternate}
+#mp{position:absolute;left:50%;top:46px;transform:translateX(-50%);font-weight:900;font-size:14px;padding:3px 12px;border-radius:10px;background:linear-gradient(#ffd54f,#ff8f00);color:#3a1d00;white-space:nowrap;box-shadow:0 2px 0 rgba(0,0,0,.4)}
+#mp.r{background:linear-gradient(#ff8a80,#d32f2f);color:#fff}
 #timer{font-size:17px;background:rgba(0,0,0,.5);padding:3px 10px;border-radius:10px;min-width:64px;text-align:center}
 #feed{position:absolute;right:max(12px,env(safe-area-inset-right));top:10px;text-align:right;font-size:13px;font-weight:700}
 #feed div{background:rgba(0,0,0,.5);padding:3px 8px;border-radius:8px;margin-bottom:3px;display:inline-block;clear:both;float:right}
@@ -85,11 +92,10 @@ body.touch .tb{display:flex}
 #btnSw{right:max(232px,calc(env(safe-area-inset-right) + 206px));bottom:98px;width:56px;height:56px;font-size:11px}
 #stick{position:absolute;width:120px;height:120px;margin:-60px;border-radius:50%;border:2px solid rgba(255,255,255,.4);background:rgba(255,255,255,.08);display:none}
 #stick i{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px;border-radius:50%;background:rgba(255,255,255,.5)}
-#cards{position:absolute;inset:0;background:rgba(5,8,25,.72);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;pointer-events:auto}
-#cards h2{margin:0;font-size:24px}
-#cards .row{display:flex;gap:12px}
-.card{width:150px;padding:14px 10px;border-radius:16px;background:linear-gradient(#27356f,#18204a);border:3px solid #ffd740;text-align:center}
-.card b{display:block;font-size:34px}.card span{display:block;font-weight:900;font-size:15px;margin:4px 0}.card small{font-size:12px;opacity:.85}
+#emo{position:absolute;left:50%;bottom:74px;transform:translateX(-50%);display:flex;gap:8px;pointer-events:auto;background:rgba(5,8,25,.6);padding:8px;border-radius:16px}
+.eb{width:66px;padding:6px 2px;border-radius:12px;background:#18214f;border:3px solid #fff;font-weight:900;font-size:11px;text-align:center}.eb b{display:block;font-size:24px;line-height:1.1}.eb small{display:block;opacity:.6;font-size:9px}
+#pv{position:fixed;left:0;right:0;bottom:14px;display:flex;gap:10px;align-items:center;justify-content:center;z-index:5}
+#pvT{background:rgba(0,0,0,.6);padding:8px 14px;border-radius:12px;font-weight:900;font-size:15px}
 
 /* ---------- 메뉴 ---------- */
 #menu{position:fixed;inset:0;touch-action:manipulation;display:flex;align-items:stretch;background:linear-gradient(90deg,rgba(8,12,34,.93) 0,rgba(8,12,34,.75) 55%,rgba(8,12,34,.25) 100%)}
@@ -132,7 +138,8 @@ body.touch .tb{display:flex}
 .prog{height:8px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden;margin-top:4px}.prog s{display:block;height:100%;background:#69f0ae}
 input[type=text],input[type=tel]{font-family:inherit;font-size:20px;font-weight:900;padding:8px 12px;border-radius:12px;border:2px solid #40c4ff;background:#0d1436;color:#fff;width:190px;text-align:center;user-select:text;-webkit-user-select:text}
 input[type=range]{width:200px}
-.sw{display:flex;gap:6px;flex-wrap:wrap}.sw button{width:44px;height:44px;border-radius:12px;border:3px solid transparent;font-size:20px}.sw button.on{border-color:#fff}.sw button.lock{opacity:.5}
+.gr{display:flex;flex-direction:column;gap:4px;margin:6px 0}.gr button{border-radius:9px;padding:4px 8px;font-weight:900;font-size:12px;text-align:left;opacity:.55;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5)}.gr button.own{opacity:1}.gr button small{display:block;font-weight:700;font-size:10px;opacity:.95}
+.lad{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:10px}.tr{width:86px;padding:6px 2px;border-radius:12px;border:2px solid rgba(255,255,255,.15);background:#131a40;text-align:center;font-weight:900;font-size:11px;color:#78839e}.tr b{display:block;font-size:22px;filter:grayscale(1);opacity:.5}.tr small{display:block;font-size:9px;opacity:.7}.tr.dn b,.tr.on b{filter:none;opacity:1}.tr.on{background:#27307a;transform:scale(1.08);box-shadow:0 0 12px rgba(255,215,64,.5)}
 table.sb{width:100%;border-collapse:collapse;font-size:15px}table.sb td{padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.12)}table.sb tr.me td{color:#ffd740;font-weight:900}
 #res{text-align:center}#res h1{font-size:46px;margin:6px 0;text-shadow:0 4px 0 #000}#res .rw{display:flex;gap:10px;justify-content:center;margin:10px 0;flex-wrap:wrap}
 #toast{position:fixed;left:50%;top:14px;transform:translate(-50%,-80px);background:#ffd740;color:#2b1c00;font-weight:900;padding:8px 18px;border-radius:14px;transition:transform .3s;z-index:50;font-size:14px;box-shadow:0 4px 0 rgba(0,0,0,.3)}
@@ -146,8 +153,8 @@ table.sb{width:100%;border-collapse:collapse;font-size:15px}table.sb td{padding:
 #btnSuper{right:max(30px,env(safe-area-inset-right));bottom:238px;width:54px;height:54px;font-size:24px;opacity:.25}
 #btnSuper.rdy{opacity:1;background:rgba(255,193,7,.75);border-color:#fff;animation:pulse .7s infinite alternate}
 @keyframes pulse{to{transform:scale(1.15)}}
-#btnHide{right:max(296px,calc(env(safe-area-inset-right) + 270px));bottom:72px;width:52px;height:52px;font-size:12px}
-#btnHide.dn{background:rgba(0,200,83,.6)}
+#btnEmo{right:max(296px,calc(env(safe-area-inset-right) + 270px));bottom:72px;width:52px;height:52px;font-size:22px}
+#btnZoom.on{background:rgba(0,200,83,.6);border-color:#b9f6ca}
 #aimPad{left:max(14px,env(safe-area-inset-left));top:96px;width:104px;height:104px;background:rgba(10,15,40,.3)}
 #aimPad i{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.65);pointer-events:none}
 #aimPad:after{content:"조준";position:absolute;bottom:-15px;font-size:10px;opacity:.8}
@@ -161,7 +168,7 @@ body:not(.pad) #aimPad{display:none}
 
 <div id="hud" class="hide">
   <div id="vign"></div><div id="frost"></div><div id="supGlow"></div>
-  <div id="scope" class="hide"></div>
+  <div id="scope" class="hide"><u></u><u></u><u></u><u></u><div id="scDot"></div><div id="scInfo"></div></div>
   <div id="floats"></div>
   <div id="cross" style="--g:6px"><i></i><i></i><i></i><i></i><i></i></div>
   <div id="hitm"></div>
@@ -170,6 +177,7 @@ body:not(.pad) #aimPad{display:none}
   <button id="btnPause" class="tb" style="display:flex;border-radius:10px" data-a="pause">≡</button>
   <div id="board" class="hide"></div>
   <div id="top"><span class="sc" id="scL">0</span><span id="timer">0:00</span><span class="sc r" id="scR">0</span></div>
+  <div id="mp" class="hide"></div>
   <div id="feed"></div>
   <div id="banner"></div><div id="streak"></div>
   <div id="ammoBox"><div id="ammoTxt">30</div><div id="wpnName"></div></div>
@@ -185,26 +193,25 @@ body:not(.pad) #aimPad{display:none}
   <div class="tb" id="btnKnife" data-t="knife">🗡️</div>
   <div class="tb" id="btnNade" data-t="nade">💣</div>
   <div class="tb" id="btnSuper" data-t="super">⭐</div>
-  <div class="tb" id="btnHide" data-t="hide">숨기</div>
+  <div class="tb" id="btnEmo" data-a="emo">💃</div>
   <div class="tb" id="aimPad" data-t="aim"><i></i></div>
-  <div id="cards" class="hide"></div>
+  <div id="emo" class="hide"></div>
 </div>
 
 <div id="menu">
   <div id="home">
     <div id="homeL">
-      <div><div id="logo">J <span>war</span></div><div id="tag">쏘고, 뛰고, 대시! 혼자서도 친구와도</div></div>
-      <button class="big c1" data-a="duelMenu"><b>⚔️</b><span>결투<small>봇과 1대1 · 2대2 · 3대3</small></span></button>
+      <div><div id="logo">J <span>war</span></div><div id="tag">쏘고, 뛰고, 춤추고! 혼자서도 친구와도</div></div>
+      <button class="big c1" data-a="duelMenu"><b>⚔️</b><span>결투<small>1대1 ~ 5대5 · 9전 5선승 · 이기면 🔑 열쇠</small></span></button>
       <div class="g2"><button class="big sm c4" data-a="gun"><b>🔁</b><span>총 바꾸기<small>아웃마다 새 총</small></span></button>
-      <button class="big sm c5" data-a="paint"><b>🎨</b><span>색칠 대결<small>3대3 바닥 칠하기</small></span></button>
-      <button class="big sm c2" data-a="wave"><b>🤖</b><span>로봇 웨이브<small>로봇을 막아라</small></span></button>
       <button class="big sm c3" data-a="online"><b>🌐</b><span>친구와 대결<small>방 번호로 같이</small></span></button></div>
+      <button class="big sm c2" data-a="rank"><b>📊</b><span>랭크<small>내 등급과 경기 기록</small></span></button>
     </div>
     <div id="homeR">
       <div id="me"></div>
       <div id="tiles">
         <button class="tile" data-a="armory"><b>🔫</b>무기고</button>
-        <button class="tile" data-a="skins"><b>🎨</b>꾸미기</button>
+        <button class="tile" data-a="dances"><b>💃</b>춤</button>
         <button class="tile" data-a="missions"><b>🎯</b>오늘의 임무<i id="misDot" class="hide">!</i></button>
         <button class="tile" data-a="settings"><b>⚙️</b>설정</button>
         <button class="tile" data-a="patch"><b>📜</b>패치 노트<i id="patchDot" class="hide">N</i></button>
@@ -215,16 +222,17 @@ body:not(.pad) #aimPad{display:none}
   </div>
 </div>
 <div id="panel" class="hide"><div id="pHead"><h2 id="pTitle"></h2><span class="chip" id="pCoin"></span><button class="btn" data-a="back">← 뒤로</button></div><div id="pBody"></div></div>
+<div id="pv" class="hide"><span id="pvT"></span><button class="btn y" data-a="pvEnd">← 돌아가기</button></div>
 <div id="toast"></div>
 <div id="rot"><b>📱↪️</b>휴대폰을 가로로 돌려 주세요</div>
 
 <script src="three.min.js"></script>
-<script src="js/01-data.js?v=11"></script>
-<script src="js/02-core.js?v=11"></script>
-<script src="js/03-actors.js?v=11"></script>
-<script src="js/04-player.js?v=11"></script>
-<script src="js/05-modes.js?v=11"></script>
-<script src="js/06-net.js?v=11"></script>
-<script src="js/07-ui.js?v=11"></script>
+<script src="js/01-data.js?v=12"></script>
+<script src="js/02-core.js?v=12"></script>
+<script src="js/03-actors.js?v=12"></script>
+<script src="js/04-player.js?v=12"></script>
+<script src="js/05-modes.js?v=12"></script>
+<script src="js/06-net.js?v=12"></script>
+<script src="js/07-ui.js?v=12"></script>
 </body>
 </html>
