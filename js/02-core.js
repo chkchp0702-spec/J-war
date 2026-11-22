@@ -40,11 +40,12 @@ const SFX = {
     if(k==="shotgun"){ noise(.22,.5*v,1400); tone(140,.15,"sawtooth",.2*v,50); }
     else if(k==="sniper"){ noise(.3,.5*v,2600); tone(300,.25,"sawtooth",.25*v,40); }
     else if(k==="launcher"){ tone(520,.13,"sine",.24*v,170); noise(.08,.2*v,900); }
-    else if(k==="rainbow"){ tone(900+Math.random()*900,.06,"sawtooth",.06*v,700); }
+    else if(k==="rainbow"){ tone(2300,.2,"sawtooth",.1*v,260); tone(1250,.16,"square",.06*v,180,.01); tone(3400,.08,"sine",.09*v,1500); noise(.05,.18*v,6000); }
     else if(k==="burst"){ noise(.06,.3*v,3400); tone(420,.05,"square",.11*v,150); }
     else if(k==="minigun"){ noise(.06,.26*v,2600); tone(260,.05,"square",.09*v,120); }
     else if(k==="pistol"){ noise(.08,.3*v,3000); tone(520,.08,"square",.12*v,160); }
     else { noise(.08,.32*v,2200); tone(330,.07,"square",.12*v,110); } },
+  ricochet(v){ if(v>.04){ tone(2800+Math.random()*700,.13,"sine",.11*v,4200); tone(1600,.06,"triangle",.06*v,2400); } },
   bounce(v){ if(v>.04) tone(380,.07,"sine",.16*v,620); },
   hit(){ tone(950,.04,"square",.12); }, head(){ tone(1500,.07,"square",.16); tone(2100,.09,"square",.12,0,.05); },
   kill(){ jingle([660,880,1320],.07,"square",.15); }, hurt(){ tone(160,.12,"sawtooth",.2,80); },
@@ -217,12 +218,27 @@ function rayActor(o,d,a,mag){ const s=a.scale||1, w=.4*s*mag, hc=a.hsc||1; let b
   return best<0?null:{t:best,head}; }
 
 /* ---------- 이펙트 ---------- */
-const FX = {tr:[],pt:[],fl:[],ex:[],mk:[],mi:0,shake:0};
+const FX = {tr:[],lz:[],lf:[],pt:[],fl:[],ex:[],mk:[],mi:0,shake:0};
 const HS = {t:0}; function hitStop(s){ HS.t=Math.max(HS.t,s); }   /* 순간 멈춤(손맛) */
 const _v1 = V3(), _v2 = V3(), _v3 = V3();
 function tracer(from,to,col,w,life){ let t=FX.tr.find(x=>x.t<=0);
   if(!t){ if(FX.tr.length>48) return; const m=new THREE.Mesh(UNIT,new THREE.MeshBasicMaterial({color:col,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})); fxG.add(m); t={m,t:0,life:.1}; FX.tr.push(t); }
   const len=from.distanceTo(to); t.m.material.color.setHex(col); t.m.position.copy(from).add(to).multiplyScalar(.5); t.m.lookAt(to); t.m.scale.set(w||.04,w||.04,len); t.m.visible=true; t.life=t.t=life||.1; }
+/* 무지개 레이저 빛줄기: 하얀 심 + 색 빛 + 바깥 은은한 빛(3겹, 더하기 빛) · 맞은 곳 번쩍 */
+const LCYL = new THREE.CylinderGeometry(1,1,1,10,1,true); LCYL.rotateX(Math.PI/2);
+const LFLR = new THREE.OctahedronGeometry(1,0);
+function laserMat(){ return new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}); }
+function laserBeam(from,to,hue,w,life){ let b=FX.lz.find(x=>x.t<=0);
+  if(!b){ if(FX.lz.length>40) return; b={t:0,life:.2,w:.05,ms:[]}; for(let i=0;i<3;i++){ const m=new THREE.Mesh(LCYL,laserMat()); fxG.add(m); b.ms.push(m); } FX.lz.push(b); }
+  const len=from.distanceTo(to); _v2.copy(from).add(to).multiplyScalar(.5);
+  b.ms.forEach((m,i)=>{ m.position.copy(_v2); m.lookAt(to); m.scale.z=len; m.visible=i<2||G.set.gfx>0; });
+  b.ms[0].material.color.setHSL(hue,.35,.92); b.ms[1].material.color.setHSL(hue,1,.55); b.ms[2].material.color.setHSL((hue+.08)%1,1,.5);
+  b.w=w||.05; b.life=b.t=life||.2; }
+function laserFlare(pos,hue,big){ let f=FX.lf.find(x=>x.t<=0);
+  if(!f){ if(FX.lf.length>24) return; const m=new THREE.Mesh(LFLR,laserMat()); fxG.add(m); f={m,t:0,s:.3}; FX.lf.push(f); }
+  f.m.material.color.setHSL(hue,1,.7); f.m.position.copy(pos); f.m.rotation.set(rnd(0,3),rnd(0,3),rnd(0,3)); f.s=big?.55:.32; f.t=.18; f.m.visible=true;
+  if(G.set.gfx>0){ _c1.setHSL(hue,1,.65); burst(pos,_c1.getHex(),big?6:4,6,.06,.3,4); burst(pos,0xffffff,2,4,.05,.2,2); } }
+const _c1 = new THREE.Color();
 function burst(pos,col,n,spd,size,life,grav,dir,gr){ for(let i=0;i<n;i++){ let p=FX.pt.find(x=>x.t<=0);
     if(!p){ if(FX.pt.length>150) return; const m=new THREE.Mesh(UNIT,matB(col)); fxG.add(m); p={m,v:V3(),t:0,life:1,g:0,s:.1}; FX.pt.push(p); }
     p.m.material=gr?matS(col):matB(col); p.m.position.copy(pos); p.v.set(rnd(-1,1),rnd(-.3,1.2),rnd(-1,1)).normalize().multiplyScalar(spd*rnd(.4,1)); if(dir) p.v.addScaledVector(dir,spd*.9); p.gr=gr||0; p.s=size||.1; p.g=grav==null?12:grav; p.life=p.t=(life||.5)*rnd(.6,1); p.m.visible=true; p.m.rotation.set(rnd(0,3),rnd(0,3),0); } }
@@ -251,6 +267,10 @@ function toScreen(v,out){ _v3.copy(v).project(camera); out.ok=_v3.z<1&&_v3.z>-1;
 const _sc = {x:0,y:0,ok:false};
 function updateFX(dt,time){
   for(const t of FX.tr){ if(t.t<=0) continue; t.t-=dt; if(t.t<=0){ t.m.visible=false; continue; } t.m.material.opacity=t.t/t.life; }
+  for(const b of FX.lz){ if(b.t<=0) continue; b.t-=dt; if(b.t<=0){ b.ms.forEach(m=>m.visible=false); continue; } const q=b.t/b.life, fl=.85+Math.random()*.3;
+    b.ms[0].scale.x=b.ms[0].scale.y=b.w*.38*(.4+.6*q); b.ms[1].scale.x=b.ms[1].scale.y=b.w*fl*(.5+.5*q); b.ms[2].scale.x=b.ms[2].scale.y=b.w*2.6*(1.3-.3*q);
+    b.ms[0].material.opacity=Math.min(1,q*1.6); b.ms[1].material.opacity=.85*q; b.ms[2].material.opacity=.22*q*q; }
+  for(const f of FX.lf){ if(f.t<=0) continue; f.t-=dt; if(f.t<=0){ f.m.visible=false; continue; } const q=f.t/.18; f.m.scale.setScalar(f.s*(1.4-q)); f.m.rotation.y+=dt*12; f.m.material.opacity=q; }
   for(const p of FX.pt){ if(p.t<=0) continue; p.t-=dt; if(p.t<=0){ p.m.visible=false; continue; } p.v.y-=p.g*dt; p.m.position.addScaledVector(p.v,dt); if(p.m.position.y<.03){ p.m.position.y=.03; p.v.y*=-.35; p.v.x*=.6; p.v.z*=.6; } const q=p.t/p.life; if(p.gr){ p.v.multiplyScalar(1-dt*2.2); const s=p.s*Math.min(1,.35+(1-q)*1.6)*Math.min(1,q/.3); p.m.scale.set(s,s,s); } else { const s=p.s*q; p.m.scale.set(s,s,s); } }
   for(let i=FX.ex.length-1;i>=0;i--){ const e=FX.ex[i]; e.t-=dt; if(e.t<=0){ fxG.remove(e.m); if(!e.keep) e.m.geometry.dispose(); e.m.material.dispose(); FX.ex.splice(i,1); continue; } const k=1-e.t/.35; e.m.scale.setScalar(e.r*(.3+k*.8)); e.m.material.opacity=1-k; }
   for(const k of FX.mk){ if(k.t<=0) continue; k.t-=dt; if(k.t<=0){ k.m.visible=false; continue; } const h=clamp((k.t-4.5)/.5,0,1); k.m.material.color.copy(_cold).lerp(_hot.setHex(k.c),h); k.m.material.opacity=Math.min(.85,k.t/1.2); }
@@ -259,7 +279,7 @@ function updateFX(dt,time){
   for(const c of W.spin){ c.position.x+=dt*1.2; if(c.position.x>110) c.position.x=-110; }
   if(ML.intensity>0) ML.intensity=Math.max(0,ML.intensity-dt*16);
   if(FX.shake>0) FX.shake=Math.max(0,FX.shake-dt*2.5); }
-function clearFX(){ for(const t of FX.tr){ t.t=0; t.m.visible=false; } for(const p of FX.pt){ p.t=0; p.m.visible=false; } for(const f of FX.fl){ f.t=0; f.el.style.display="none"; } for(const e of FX.ex){ fxG.remove(e.m); } FX.ex.length=0; for(const k of FX.mk){ k.t=0; k.m.visible=false; } FX.shake=0; }
+function clearFX(){ for(const t of FX.tr){ t.t=0; t.m.visible=false; } for(const b of FX.lz){ b.t=0; b.ms.forEach(m=>m.visible=false); } for(const f of FX.lf){ f.t=0; f.m.visible=false; } for(const p of FX.pt){ p.t=0; p.m.visible=false; } for(const f of FX.fl){ f.t=0; f.el.style.display="none"; } for(const e of FX.ex){ fxG.remove(e.m); } FX.ex.length=0; for(const k of FX.mk){ k.t=0; k.m.visible=false; } FX.shake=0; }
 
 let toastT=null;
 function toast(msg,sec){ const t=$("toast"); t.textContent=msg; t.classList.add("s"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("s"),(sec||2.2)*1000); }

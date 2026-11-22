@@ -133,6 +133,7 @@ function volAt(pos){ if(!P) return 0; return clamp(1-P.pos.distanceTo(pos)/50,0,
 function shoot(a,wkey,o,dir,opt){ opt=opt||{}; const w=WEAPONS[wkey]; a.kick=1; SFX.shoot(wkey,a===P?1:volAt(a.pos)); muzzleOf(a,_m);
   if(w.proj){ spawnProj(a,wkey,_m.clone(),dir.clone(),opt.visual); return; }
   const n=w.pel||1, mag=a===P?(TOUCH?1.3:1.1):1;
+  if(w.rfl!=null){ laserShot(a,wkey,o,dir,opt,mag); return; }
   for(let i=0;i<n;i++){ _d.copy(dir); const sp=w.spread*(opt.sm||1); if(sp>0){ _d.x+=rnd(-sp,sp); _d.y+=rnd(-sp,sp)*.8; _d.z+=rnd(-sp,sp); _d.normalize(); }
     let t=rayWorld(o,_d,w.range), hit=null, head=false;
     for(const b of ACT){ if(!b.alive||!hostile(a,b)) continue; const r=rayActor(o,_d,b,mag); if(r&&r.t<t){ t=r.t; hit=b; head=r.head; } }
@@ -141,6 +142,26 @@ function shoot(a,wkey,o,dir,opt){ opt=opt||{}; const w=WEAPONS[wkey]; a.kick=1; 
       burst(_e,head?0xffd740:0xffffff,3,3,.08,.3); if(w.slow) burst(_e,0x80deea,2,2,.1,.4,2); }
     else if(t<w.range) wallHit(_e,_d,w.col,wkey==="sniper"||opt.tw>.1); }
   if(a===P&&!w.beam&&G.set.gfx>0){ const s=Math.sin(a.yaw), c=Math.cos(a.yaw); _d.set(c,.9,-s); _e.copy(_m).addScaledVector(dir,.25); burst(_e,0xe0a82e,1,2.4,.035,.7,13,_d); } }
+/* 무지개 레이저: 벽 · 바닥 · 천장에 맞으면 거울처럼 반사 (최대 w.rfl번, 꺾인 길이까지 합쳐 w.range). 반사로 맞히면 「반사 명중!」 */
+const _lo = V3(), _ld = V3(), _ln = V3(), _ls = V3();
+function laserShot(a,wkey,o,dir,opt,mag){ const w=WEAPONS[wkey]; let left=w.range, hue=(performance.now()/1100+a.pos.x*.07)%1;
+  _lo.copy(o); _ld.copy(dir); _ls.copy(_m); const done=[];
+  if(a===P) VM.flash=.06;
+  for(let seg=0; seg<=w.rfl&&left>.4; seg++){
+    let t=rayWorld(_lo,_ld,left), hit=null, head=false;
+    for(const b of ACT){ if(!b.alive||!hostile(a,b)||done.indexOf(b)>=0) continue; const r=rayActor(_lo,_ld,b,mag); if(r&&r.t<t){ t=r.t; hit=b; head=r.head; } }
+    _e.copy(_lo).addScaledVector(_ld,t);
+    laserBeam(_ls,_e,hue,seg?.05:.038,seg?.24:.2);
+    if(G.set.gfx>0&&t>3){ for(let k=0;k<2;k++){ _o2.copy(_lo).addScaledVector(_ld,rnd(1,t)); _rb.setHSL((hue+rnd(-.1,.1)+1)%1,1,.7); burst(_o2,_rb.getHex(),1,.8,.05,.35,-.5); } }   /* 빛줄기 따라 반짝이 */
+    if(hit){ done.push(hit); laserFlare(_e,hue,1);
+      if(!opt.visual){ let dmg=w.dmg*(a.dmgMul||1)*(opt.dm||1); if(head) dmg*=HEAD_MUL*(a.headMul||1); damage(hit,dmg,a,{head,w:wkey});
+        if(seg&&a===P){ _o2.copy(_e); _o2.y+=.9; floatText(_o2,seg>1?"반사 "+seg+"번 명중!":"반사 명중!","#80d8ff",20,.9); } }
+      break; }
+    if(t>=left-.01) break;
+    const nr=hitNormal(_e,_ld,_ln); laserFlare(_e,hue,0); if(G.set.gfx>0&&nr) bulletMark(_e,nr,_rb.setHSL(hue,1,.55).getHex(),.2);
+    if(!nr) break;
+    _ld.addScaledVector(nr,-2*_ld.dot(nr)).normalize(); left-=t; _lo.copy(_e).addScaledVector(nr,.04); _ls.copy(_lo); hue=(hue+.14)%1;
+    if(seg===0) SFX.ricochet(a===P?.8:volAt(_e)); } }
 function spawnProj(a,wkey,pos,dir,visual){ const w=WEAPONS[wkey]; const m=new THREE.Mesh(UNIT,matB(w.grav?w.col:0xfff176)); if(w.grav) m.scale.set(.26,.26,.26); else m.scale.set(.16,.16,.55); m.position.copy(pos); _e.copy(pos).add(dir); m.lookAt(_e); fxG.add(m);
   PROJ.push({a,wkey,pos,dir,spd:w.proj,life:3.5,m,visual:!!visual,tr:0,grav:w.grav||0,bnc:w.bnc||0}); }
 /* 통통총: 부딪힌 면을 찾아 튕김 (바닥 → 옆벽 → 위아래 순서로 시험) */
@@ -173,7 +194,7 @@ function updatePicks(dt){ for(let i=PICK.length-1;i>=0;i--){ const p=PICK[i]; p.
     if(got||p.t<=0){ fxG.remove(p.m); PICK.splice(i,1); } } }
 
 /* ---------- 봇 AI ---------- */
-const PREF = {shotgun:6,sniper:30,launcher:14,rainbow:14,burst:22,minigun:12,pistol:13};
+const PREF = {shotgun:6,sniper:30,launcher:14,rainbow:20,burst:22,minigun:12,pistol:13};
 function addBot(o){ const a=newActor(Object.assign({isBot:true,skill:.4},o)); const w=WEAPONS[a.wkey]; if(!o.robot&&!o.maxhp) a.maxhp=a.hp=[100,150,200][G.set.diff];
   Object.assign(a,{think:rnd(0,.2),see:false,target:null,seeT:0,field:null,fieldT:0,strafe:pick([-1,1]),strafeT:rnd(.8,2),cool:rnd(.3,.8),ammo:w.mag,relT:0,pref:PREF[a.wkey]||11,jumpT:rnd(2,6),burst:Math.round(rnd(3,8)),mcd:0,last:V3(),hasLast:false});
   return a; }
