@@ -46,13 +46,22 @@ function dirFrom(yaw,pitch,out){ const cp=Math.cos(pitch); return out.set(-Math.
 
 function updateAvatar(a,dt){ const v=a.av; if(!v) return; if(a===P&&!(a.dance&&a.alive)){ v.g.visible=false; return; } if(!a.alive){ a.dance=null; if(a.deadT>0){ a.deadT-=dt; const k=1-a.deadT/.6; v.g.visible=true; v.g.rotation.x=Math.min(1.5,k*2.4); v.g.position.y=a.pos.y-Math.max(0,k-.7)*2.5; v.label.visible=v.bar.visible=v.fill.visible=false; } else v.g.visible=false; return; }
   v.g.visible=!(a.inv>0&&Math.floor(a.inv*10)%2===0); v.label.visible=true; v.g.rotation.x=0; v.g.scale.y=a.scale*(a.hsc||1);
-  v.g.position.copy(a.pos); v.g.rotation.y=a.yaw; const sp=Math.hypot(a.vel.x,a.vel.z); a.walk+=dt*sp*2.3; const sw=Math.sin(a.walk)*Math.min(1,sp/4)*.75;
-  v.legL.rotation.x=sw; v.legR.rotation.x=-sw; v.headG.rotation.x=a.pitch*.7; if(a.kick>0) a.kick=Math.max(0,a.kick-dt*7);
-  if(a.melee){ v.armL.rotation.x=-sw+a.kick*2; v.armR.rotation.x=sw+a.kick*2; } else { v.armR.rotation.x=Math.PI/2+a.pitch+a.kick*.25; v.armL.rotation.x=Math.PI/2+a.pitch-.1; v.armL.rotation.z=-.45; }
+  v.g.position.copy(a.pos); v.g.rotation.y=a.yaw; const sp=Math.hypot(a.vel.x,a.vel.z); a.walk+=dt*sp*2.3; const run=Math.min(1,sp/4), sw=Math.sin(a.walk)*run*.8;
+  if(a.kick>0) a.kick=Math.max(0,a.kick-dt*7);
+  if(!a.dance&&v.dz){ v.dz=0; v.armR.rotation.z=0; v.armL.rotation.y=v.armR.rotation.y=0; v.legL.rotation.z=v.legR.rotation.z=0; v.headG.rotation.y=v.headG.rotation.z=0; v.g.rotation.z=0; if(v.gun) v.gun.visible=true; }
+  /* 자세: 달릴 때 몸 기울기·들썩임 / 공중에서 다리 벌리기 / 착지 때 움찔 / 쏠 때 반동 / 서 있을 때 숨쉬기 (춤출 때는 pz=0 으로 끔) */
+  const pz=a.dance?0:1, sy=Math.sin(a.yaw), cy=Math.cos(a.yaw), q=Math.min(1,dt*10), vy=v.py===undefined||dt<=0?0:(a.pos.y-v.py)/dt; v.py=a.pos.y;
+  const inAir=(a.remote?Math.abs(vy)>1.2:!a.ground)?1:0; if(inAir) v.airT=(v.airT||0)+dt; else { if(v.airT>.28) v.land=1; v.airT=0; }
+  v.air=(v.air||0)+(inAir*pz-(v.air||0))*Math.min(1,dt*12); v.land=Math.max(0,(v.land||0)-dt*4.5); if(v.bt===undefined) v.bt=Math.random()*6; v.bt+=dt;
+  v.lx=(v.lx||0)+(clamp((a.vel.x*sy+a.vel.z*cy)/6,-1,1)*.13-(v.lx||0))*q; v.lz=(v.lz||0)+(clamp((a.vel.z*sy-a.vel.x*cy)/6,-1,1)*.1-(v.lz||0))*q;
+  const air=v.air, up=clamp(vy/7,-1,1), ld=Math.sin(v.land*Math.PI)*pz, br=Math.sin(v.bt*2.3)*.016*(1-run)*pz, kb=a.kick*pz, gx=sw*(1-air), bx=(v.lx-kb*.035)*pz, as=Math.sin(a.walk*2)*.045*run*pz;
+  v.g.rotation.x=bx; if(pz) v.g.rotation.z=v.lz; v.g.position.y+=(Math.abs(Math.sin(a.walk))*.05*run*(1-air)-ld*.07)*a.scale*pz; v.g.scale.y*=1-ld*.1;
+  v.legL.rotation.x=gx+air*(.5+.25*up)+ld*.22; v.legR.rotation.x=-gx-air*(.4-.1*up)-ld*.22; v.headG.rotation.x=a.pitch*.7-bx+br; v.armR.position.z=kb*.05; v.armL.position.z=kb*.03;
+  if(a.melee){ v.armL.rotation.x=-sw+a.kick*2+air*.6; v.armR.rotation.x=sw+a.kick*2+air*.6; } else { v.armR.rotation.x=Math.PI/2+a.pitch+a.kick*.25-bx+as+br; v.armL.rotation.x=Math.PI/2+a.pitch-.1-bx+as*.8+br+kb*.16; v.armL.rotation.z=-.45; }
   if(a.hurtT>0){ a.hurtT-=dt; const e=a.hurtT>0?.75:0; v.mats.forEach(m=>m.emissive.setScalar(e)); }
   else if(a.slowT>0) v.mats[0].emissive.setRGB(0,.25,.45); else if(v.mats[0].emissive.b>0) v.mats[0].emissive.setScalar(0);
   const show=!!P&&hostile(a,P); v.bar.visible=v.fill.visible=show; if(show) v.fill.scale.x=Math.max(.001,a.hp/a.maxhp);
-  if(a.dance) dancePose(a,v,dt); else if(v.dz){ v.dz=0; v.armR.rotation.z=0; v.armL.rotation.y=v.armR.rotation.y=0; v.legL.rotation.z=v.legR.rotation.z=0; v.headG.rotation.y=v.headG.rotation.z=0; v.g.rotation.z=0; if(v.gun) v.gun.visible=true; } }
+  if(a.dance) dancePose(a,v,dt); }
 
 /* ---------- 💃 춤 (등급 1 초록: 표현 · 2 파랑: 춤 · 3 빨강: 실감 나는 춤) ---------- */
 const _dp = {}, ease = u => { u=clamp(u,0,1); return u*u*(3-2*u); };
