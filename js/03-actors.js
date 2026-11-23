@@ -140,7 +140,7 @@ function muzzleOf(a,out){ const s=Math.sin(a.yaw), c=Math.cos(a.yaw);
 function volAt(pos){ if(!P) return 0; return clamp(1-P.pos.distanceTo(pos)/50,0,.85); }
 /* o: 눈 위치, dir: 겨눈 방향. opt.sm 퍼짐 배율, opt.visual 보여 주기만(온라인 상대 총알) */
 function shoot(a,wkey,o,dir,opt){ opt=opt||{}; const w=WEAPONS[wkey]; a.kick=1; SFX.shoot(wkey,a===P?1:volAt(a.pos)); muzzleOf(a,_m);
-  if(w.proj){ spawnProj(a,wkey,_m.clone(),dir.clone(),opt.visual); return; }
+  if(w.proj){ spawnProj(a,wkey,_m.clone(),dir.clone(),opt.visual,opt.dm); return; }
   const n=w.pel||1, mag=a===P?(TOUCH?1.3:1.1):1;
   if(w.rfl!=null){ laserShot(a,wkey,o,dir,opt,mag); return; }
   for(let i=0;i<n;i++){ _d.copy(dir); const sp=w.spread*(opt.sm||1); if(sp>0){ _d.x+=rnd(-sp,sp); _d.y+=rnd(-sp,sp)*.8; _d.z+=rnd(-sp,sp); _d.normalize(); }
@@ -171,8 +171,8 @@ function laserShot(a,wkey,o,dir,opt,mag){ const w=WEAPONS[wkey]; let left=w.rang
     if(!nr) break;
     _ld.addScaledVector(nr,-2*_ld.dot(nr)).normalize(); left-=t; _lo.copy(_e).addScaledVector(nr,.04); _ls.copy(_lo); hue=(hue+.14)%1;
     if(seg===0) SFX.ricochet(a===P?.8:volAt(_e)); } }
-function spawnProj(a,wkey,pos,dir,visual){ const w=WEAPONS[wkey]; const m=new THREE.Mesh(UNIT,matB(w.grav?w.col:0xfff176)); if(w.grav) m.scale.set(.26,.26,.26); else m.scale.set(.16,.16,.55); m.position.copy(pos); _e.copy(pos).add(dir); m.lookAt(_e); fxG.add(m);
-  PROJ.push({a,wkey,pos,dir,spd:w.proj,life:3.5,m,visual:!!visual,tr:0,grav:w.grav||0,bnc:w.bnc||0}); }
+function spawnProj(a,wkey,pos,dir,visual,dm){ const w=WEAPONS[wkey]; const m=new THREE.Mesh(UNIT,matB(w.grav?w.col:0xfff176)); if(w.grav) m.scale.set(.26,.26,.26); else m.scale.set(.16,.16,.55); m.position.copy(pos); _e.copy(pos).add(dir); m.lookAt(_e); fxG.add(m);
+  PROJ.push({a,wkey,pos,dir,spd:w.proj,life:3.5,m,visual:!!visual,tr:0,grav:w.grav||0,bnc:w.bnc||0,dm:dm||1}); }
 /* 통통총: 부딪힌 면을 찾아 튕김 (바닥 → 옆벽 → 위아래 순서로 시험) */
 function bounceDir(p){ const d=p.dir; if(p.pos.y<.12&&d.y<0){ d.y=-d.y; return; }
   for(const ax of ["x","z","y"]){ d[ax]=-d[ax]; if(rayWorld(p.pos,d,.4)>=.4) return; d[ax]=-d[ax]; } d.negate(); }
@@ -181,8 +181,8 @@ function explode(p,pt){ const w=WEAPONS[p.wkey]; boomFx(pt,w.splash); SFX.boom(P
   for(const b of ACT.slice()){ if(!b.alive) continue; _o2.set(b.pos.x,b.pos.y+.9*b.scale,b.pos.z); const d=_o2.distanceTo(pt); if(d>=w.splash+b.r) continue; const k=1-clamp(d/w.splash,0,1)*.75;
     if(!b.remote&&(b===p.a||!p.visual)){ _o2.sub(pt).normalize(); const self=b===p.a; b.vel.x+=_o2.x*(self?11:8)*k; b.vel.z+=_o2.z*(self?11:8)*k; b.vel.y+=(self?9.5:5)*k; b.ground=false; }
     if(p.visual) continue;
-    if(b===p.a) damage(b,16*k,null,{w:p.wkey,self:1}); else if(hostile(p.a,b)) damage(b,w.dmg*k*(p.a.dmgMul||1),p.a,{w:p.wkey}); } }
-function updateProj(dt){ for(let i=PROJ.length-1;i>=0;i--){ const p=PROJ[i]; if(p.grav){ p.dir.multiplyScalar(p.spd); p.dir.y-=p.grav*dt; p.spd=p.dir.length(); p.dir.multiplyScalar(1/p.spd); p.m.rotation.x+=dt*9; } const step=p.spd*dt; let t=rayWorld(p.pos,p.dir,step), hit=t<step, act=false;
+    if(b===p.a) damage(b,16*k,null,{w:p.wkey,self:1}); else if(hostile(p.a,b)) damage(b,w.dmg*k*(p.a.dmgMul||1)*(p.dm||1),p.a,{w:p.wkey}); } }
+function updateProj(dt){ for(const k in NADE_GAP) if(NADE_GAP[k]>0) NADE_GAP[k]-=dt; for(let i=PROJ.length-1;i>=0;i--){ const p=PROJ[i]; if(p.grav){ p.dir.multiplyScalar(p.spd); p.dir.y-=p.grav*dt; p.spd=p.dir.length(); p.dir.multiplyScalar(1/p.spd); p.m.rotation.x+=dt*9; } const step=p.spd*dt; let t=rayWorld(p.pos,p.dir,step), hit=t<step, act=false;
     for(const b of ACT){ if(!b.alive||!hostile(p.a,b)) continue; const r=rayActor(p.pos,p.dir,b,1.25); if(r&&r.t<=t){ t=r.t; hit=true; act=true; } }
     p.life-=dt; if(hit||p.life<=0){ _e.copy(p.pos).addScaledVector(p.dir,Math.max(0,t-.05));
       if(p.bnc>0&&!act&&p.life>0){ p.bnc--; p.pos.copy(_e); bounceDir(p); p.spd*=.85; p.m.position.copy(p.pos); burst(_e,0xffcc80,3,2.5,.09,.25); SFX.bounce(P?clamp(1-P.pos.distanceTo(_e)/40,0,1):0); continue; }
@@ -205,9 +205,21 @@ function updatePicks(dt){ for(let i=PICK.length-1;i>=0;i--){ const p=PICK[i]; p.
 /* ---------- 봇 AI ---------- */
 const PREF = {shotgun:6,sniper:30,launcher:14,rainbow:20,burst:22,minigun:12,pistol:13};
 function addBot(o){ const a=newActor(Object.assign({isBot:true,skill:.4},o)); const w=WEAPONS[a.wkey]; if(!o.robot&&!o.maxhp) a.maxhp=a.hp=[100,150,200][G.set.diff];
-  Object.assign(a,{think:rnd(0,.2),see:false,target:null,seeT:0,field:null,fieldT:0,strafe:pick([-1,1]),strafeT:rnd(.8,2),cool:rnd(.3,.8),ammo:w.mag,relT:0,pref:PREF[a.wkey]||11,jumpT:rnd(2,6),burst:Math.round(rnd(3,8)),mcd:0,last:V3(),hasLast:false});
+  Object.assign(a,{think:rnd(0,.2),see:false,target:null,seeT:0,field:null,fieldT:0,strafe:pick([-1,1]),strafeT:rnd(.8,2),cool:rnd(.3,.8),ammo:w.mag,relT:0,pref:PREF[a.wkey]||11,jumpT:rnd(2,6),burst:Math.round(rnd(3,8)),mcd:0,last:V3(),hasLast:false,nadeCd:rnd(5,10),lostT:0});
   return a; }
 const _bd = V3(), _be = V3(), _bt = V3(), _mv = {x:0,z:0};
+/* 봇 폭탄: 벽 뒤에 숨은 상대를 끌어내거나, 한자리에 가만히 서 있는 상대에게 던짐. 움직이는 상대에게는 안 던짐.
+   던질 때 머리 위에 💣 표시. 같은 편은 5초에 하나만. 피해는 내 폭탄의 65% */
+const NADE_GAP = {}, _gp = V3(), _gv = V3(), _gs = V3();
+function arcClear(o,d,v,gr,dist){ _gp.copy(o); _gv.copy(d).multiplyScalar(v); const h=.06; let far=0;
+  for(let i=0;i<60&&far<dist*.85;i++){ _gs.copy(_gv).multiplyScalar(h); const l=_gs.length(); far+=Math.hypot(_gs.x,_gs.z); _gs.multiplyScalar(1/l); if(rayWorld(_gp,_gs,l)<l) return false; _gp.addScaledVector(_gs,l); _gv.y-=gr*h; } return true; }
+function botNade(b,t,dt){ if(b.see) b.lostT=0; else b.lostT+=dt; b.nadeCd-=dt; if(b.nadeCd>0||b.robot||b.skill<=.3||b.relT>0||!b.ground||NADE_GAP[b.team]>0) return;
+  const hid=!b.see&&b.hasLast&&b.lostT>1.2&&b.lostT<6, still=b.see&&b.seeT>1.5&&Math.hypot(t.vel.x,t.vel.z)<2.5; if(!hid&&!still) return;
+  b.nadeCd=1.2; const g=hid?b.last:t.pos, w=WEAPONS.grenade, v=w.proj, gr=w.grav; eyeOf(b,_be); const dx=g.x-_be.x, dz=g.z-_be.z, d=Math.hypot(dx,dz), h=g.y+.3-_be.y;
+  if(d<8||d>20) return; const disc=v*v*v*v-gr*(gr*d*d+2*h*v*v); if(disc<0) return;
+  for(const s of [-1,1]){ const th=Math.atan((v*v+s*Math.sqrt(disc))/(gr*d)); if(th>1.35) continue; const c=Math.cos(th); _bd.set(dx/d*c,Math.sin(th),dz/d*c); if(!arcClear(_be,_bd,v,gr,d)) continue;
+    const e=lerp(.08,.025,b.skill); _bd.x+=rnd(-e,e); _bd.z+=rnd(-e,e); _bd.normalize(); shoot(b,"grenade",_be,_bd,{dm:.65}); b.nadeCd=lerp(15,9,b.skill)+rnd(0,4); NADE_GAP[b.team]=5; b.cool=Math.max(b.cool,.5); b.nades=(b.nades||0)+1;
+    _gp.set(b.pos.x,b.pos.y+2.5*b.scale,b.pos.z); floatText(_gp,"💣","#ffd740",24,.9); return; } }
 function botPickTarget(b){ let best=null, bd=1e9; for(const a of ACT){ if(!a.alive||!hostile(b,a)) continue; const d=b.pos.distanceTo(a.pos)*(a===b.target?.8:1); if(d<bd){ bd=d; best=a; } } return best; }
 function updateBot(b,dt){ if(!b.alive) return; const frozen=M.freeze>0||M.phase!=="play";
   if(b.slowT>0) b.slowT-=dt; if(b.inv>0) b.inv-=dt;
@@ -238,7 +250,8 @@ function updateBot(b,dt){ if(!b.alive) return; const frozen=M.freeze>0||M.phase!
         const tv=Math.hypot(t.vel.x,t.vel.z), err=lerp(.1,.016,b.skill)*(1+tv*.07)*(b.seeT<1.2?1.5:1); _bd.x+=rnd(-err,err); _bd.y+=rnd(-err,err)*.7; _bd.z+=rnd(-err,err); _bd.normalize();
         shoot(b,b.wkey,_be,_bd,null); b.ammo--; b.cool=w.rate*1.2/(w.brst||1); b.aimHead=Math.random()<b.skill*.3;
         if(--b.burst<=0){ b.burst=Math.round(rnd(3,9)); b.cool+=rnd(.25,.7)*(1.3-b.skill); }
-        if(b.ammo<=0) b.relT=w.rel*1.15; } } }
+        if(b.ammo<=0) b.relT=w.rel*1.15; }
+      botNade(b,t,dt); } }
   const k=1-Math.exp(-(b.ground?9:2)*dt); b.vel.x+=(wx*sp-b.vel.x)*k; b.vel.z+=(wz*sp-b.vel.z)*k;
   moveActor(b,dt); padCheck(b);
   if(!frozen&&Math.hypot(wx,wz)>.5&&Math.hypot(b.vel.x,b.vel.z)<.6){ b.stuck=(b.stuck||0)+dt; if(b.stuck>.7){ b.stuck=0; b.strafe=-b.strafe; b.fieldT=0; if(b.ground) b.vel.y=8.4; } } else b.stuck=0; }
