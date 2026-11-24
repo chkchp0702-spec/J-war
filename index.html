@@ -58,13 +58,24 @@ button{font-family:inherit;color:inherit;border:0;cursor:pointer}
 #mp{position:absolute;left:50%;top:46px;transform:translateX(-50%);font-weight:900;font-size:14px;padding:3px 12px;border-radius:10px;background:linear-gradient(#ffd54f,#ff8f00);color:#3a1d00;white-space:nowrap;box-shadow:0 2px 0 rgba(0,0,0,.4)}
 #mp.r{background:linear-gradient(#ff8a80,#d32f2f);color:#fff}
 #timer{font-size:17px;background:rgba(0,0,0,.5);padding:3px 10px;border-radius:10px;min-width:64px;text-align:center}
-#feed{position:absolute;right:max(12px,env(safe-area-inset-right));top:10px;text-align:right;font-size:13px;font-weight:700}
-#feed div{background:rgba(0,0,0,.5);padding:3px 8px;border-radius:8px;margin-bottom:3px;display:inline-block;clear:both;float:right}
-#feed .me{background:rgba(255,193,7,.9);color:#222}
+#feed{position:absolute;right:max(12px,env(safe-area-inset-right));top:10px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:13px;font-weight:800}
+#feed div{display:flex;align-items:center;gap:6px;background:linear-gradient(90deg,rgba(10,14,24,.25),rgba(10,14,24,.78));padding:3px 9px 3px 10px;border-radius:9px;border-right:3px solid rgba(255,255,255,.55);text-shadow:0 1px 2px #000;white-space:nowrap;animation:feedIn .22s ease-out}
+#feed div.out{opacity:0;transform:translateX(16px);transition:opacity .35s,transform .35s}
+#feed b.l{color:#7cc4ff}#feed b.r{color:#ff8a80}#feed b.y{color:#ffe14d}
+#feed i{font-style:normal;font-size:14px;padding:0 5px;border-radius:6px;background:rgba(255,255,255,.16)}
+#feed .me{background:linear-gradient(90deg,rgba(255,193,7,.18),rgba(60,40,0,.85));border-right-color:#ffd740;box-shadow:0 0 10px rgba(255,200,0,.45)}
+#feed .me.dn{background:linear-gradient(90deg,rgba(244,67,54,.18),rgba(60,8,8,.85));border-right-color:#ff5252;box-shadow:0 0 10px rgba(255,60,60,.4)}
+@keyframes feedIn{from{opacity:0;transform:translateX(24px) scale(.9)}to{opacity:1;transform:none}}
 #ammoBox{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:10px;text-align:right;text-shadow:0 2px 3px #000}
 body.touch #ammoBox{right:auto;left:50%;transform:translateX(-50%);text-align:center;bottom:8px}
 #ammoTxt{font-size:30px;font-weight:900;line-height:1}#ammoTxt small{font-size:15px;opacity:.8}
-#wpnName{font-size:13px;font-weight:700;opacity:.95}
+#ammoBar{width:118px;height:6px;margin:4px 0 3px auto;border-radius:3px;background:rgba(0,0,0,.55);box-shadow:0 0 0 1px rgba(255,255,255,.35);overflow:hidden}
+body.touch #ammoBar{margin:4px auto 3px}
+#ammoFill{height:100%;width:100%;border-radius:3px;background:linear-gradient(#fff,#cfd8dc)}
+#ammoBox.low #ammoTxt{color:#ff6e6e;animation:ammoLow .45s infinite alternate}#ammoBox.low #ammoFill{background:#ff5252}
+#ammoBox.rel #ammoFill{background:linear-gradient(#ffe36b,#ffa000)}
+@keyframes ammoLow{to{opacity:.55}}
+#wpnName{display:inline-block;font-size:13px;font-weight:800;padding:1px 9px;border-radius:9px;background:rgba(10,14,24,.5);box-shadow:0 0 0 1px rgba(255,255,255,.22)}
 #banner{position:absolute;left:0;right:0;top:20%;text-align:center;font-weight:900;font-size:44px;letter-spacing:1px;text-shadow:0 3px 0 #000,0 0 18px rgba(255,200,0,.8);opacity:0;transform:scale(.6);transition:opacity .25s,transform .25s}
 #banner.s{opacity:1;transform:scale(1)}
 #banner small{display:block;font-size:18px;margin-top:4px;text-shadow:0 2px 3px #000}
@@ -180,7 +191,7 @@ body:not(.pad) #aimPad{display:none}
   <div id="mp" class="hide"></div>
   <div id="feed"></div>
   <div id="banner"></div><div id="streak"></div>
-  <div id="ammoBox"><div id="ammoTxt">30</div><div id="wpnName"></div></div>
+  <div id="ammoBox"><div id="ammoTxt">30</div><div id="ammoBar"><div id="ammoFill"></div></div><div id="wpnName"></div></div>
   <div id="netPill" class="hide"></div>
   <div id="stick"><i></i></div>
   <div class="tb" id="btnFire" data-t="fire">🔥</div>
@@ -227,12 +238,12 @@ body:not(.pad) #aimPad{display:none}
 <div id="rot"><b>📱↪️</b>휴대폰을 가로로 돌려 주세요</div>
 
 <script src="three.min.js"></script>
-<script src="js/01-data.js?v=16"></script>
-<script src="js/02-core.js?v=16"></script>
-<script src="js/03-actors.js?v=16"></script>
-<script src="js/04-player.js?v=16"></script>
-<script src="js/05-modes.js?v=16"></script>
-<script src="js/06-net.js?v=16"></script>
-<script src="js/07-ui.js?v=16"></script>
+<script src="js/01-data.js?v=17"></script>
+<script src="js/02-core.js?v=17"></script>
+<script src="js/03-actors.js?v=17"></script>
+<script src="js/04-player.js?v=17"></script>
+<script src="js/05-modes.js?v=17"></script>
+<script src="js/06-net.js?v=17"></script>
+<script src="js/07-ui.js?v=17"></script>
 </body>
 </html>

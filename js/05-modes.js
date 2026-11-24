@@ -16,7 +16,7 @@ function grant(keys,xp){ const lv0=lvOf(G.xp); G.xp+=xp; const lv1=lvOf(G.xp), b
 function beginMatch(type,map){ clearActors(); clearFX(); buildMap(map); Object.assign(M,{active:true,paused:false,type,map,t:0,kills:0,hs:0,freeze:0,botDmg:1,phase:"play",pt:0,pwT:9});
   resetInput(); UI.mp(0,0); UI.showGame(); }
 function stopMatch(){ M.active=false; M.paused=false; M.phase=""; resetInput(); if(document.exitPointerLock) document.exitPointerLock(); }
-function onKillCommon(t,by,info){ UI.feed(by?by.name:"",t.name,info.w&&WEAPONS[info.w]?WEAPONS[info.w].ic:"💥",by===P||t===P);
+function onKillCommon(t,by,info){ { const fc=x=>x===P?"y":(P&&x.team===P.team?"l":"r"); UI.feed(by?by.name:"",t.name,info.w&&WEAPONS[info.w]?WEAPONS[info.w].ic:"💥",by===P||t===P,by?fc(by):"",fc(t)); }
   if(by===P){ if(info.w==="knife") bump("knife",1); if(WKEYS.indexOf(info.w)>=0){ G.wk[info.w]=(G.wk[info.w]||0)+1; if(STAR_AT.indexOf(G.wk[info.w])>=0) toast(WEAPONS[info.w].n+" 숙련도 ★"+stars(info.w)+" 달성!"); } if(P.supT<=0) P.sup=Math.min(100,P.sup+12); M.kills++; G.stat.k++; bump("kills",1); if(info.head){ M.hs++; G.stat.hs++; bump("hs",1); }
     bump("streak",P.streak); const s=P.streak; if(s>=2) UI.streak(s===2?"더블 아웃!":s===3?"트리플 아웃!":s===4?"막을 수 없어!":"전설이다!! ×"+s); } }
 function usedNames(){ const u={}; ACT.forEach(a=>u[a.name]=1); return u; }

@@ -11,7 +11,7 @@ const UI = {scr:"home",bT:0,sT:0,hT:0,vg:0,ind:[0,0,0],indI:0,
   hitmark(k){ const h=$("hitm"); h.className="s "+k; UI.hT=.12; },
   hurt(by,amt){ UI.vg=Math.min(1,UI.vg+.25+amt/60); SFX.hurt(); FX.shake=Math.max(FX.shake,.2); if(!by||!P) return; const dx=by.pos.x-P.pos.x, dz=by.pos.z-P.pos.z, s=Math.sin(P.yaw), c=Math.cos(P.yaw);
     const ang=Math.atan2(dx*c-dz*s,-dx*s-dz*c)*180/Math.PI, i=UI.indI=(UI.indI+1)%3, el=$("dmgInd").children[i]; el.style.transform="rotate("+ang+"deg)"; UI.ind[i]=1; },
-  feed(a,b,ic,me){ const f=$("feed"), d=document.createElement("div"); if(me) d.className="me"; d.textContent=(a?a+" ":"")+ic+" "+b; f.appendChild(d); while(f.children.length>4) f.removeChild(f.firstChild); setTimeout(()=>{ if(d.parentNode) d.parentNode.removeChild(d); },4500); },
+  feed(a,b,ic,me,ca,cb){ const f=$("feed"), d=document.createElement("div"); if(me) d.className=cb==="y"?"me dn":"me"; d.innerHTML=(a?'<b class="'+(ca||"")+'">'+esc(a)+"</b>":"")+"<i>"+ic+'</i><b class="'+(cb||"")+'">'+esc(b)+"</b>"; f.appendChild(d); while(f.children.length>3) f.removeChild(f.firstChild); setTimeout(()=>d.classList.add("out"),4100); setTimeout(()=>{ if(d.parentNode) d.parentNode.removeChild(d); },4500); },
   banner(t,sub,sec){ const b=$("banner"); b.innerHTML=esc(t)+(sub?"<small>"+esc(sub)+"</small>":""); b.classList.add("s"); UI.bT=sec||1.5; },
   streak(t){ const s=$("streak"); s.textContent="🔥 "+t; s.classList.add("s"); UI.sT=1.6; jingle([880,1175,1568],.06,"square",.12); },
   score(l,r,hide){ $("scL").style.display=$("scR").style.display=hide?"none":""; $("scL").textContent=l; $("scR").textContent=r; },
@@ -20,7 +20,8 @@ const UI = {scr:"home",bT:0,sT:0,hT:0,vg:0,ind:[0,0,0],indI:0,
   net(t){ const p=$("netPill"); p.textContent=t; p.classList.toggle("hide",!t); },
   hud(dt){ if(!P) return; const hp=clamp(P.hp/P.maxhp,0,1), f=$("hpFill"); f.style.width=(hp*100)+"%"; f.style.background=hp>.5?"linear-gradient(#7CFF6B,#27c93f)":hp>.25?"linear-gradient(#ffe36b,#ffa000)":"linear-gradient(#ff8a80,#e53935)";
     $("hpTxt").textContent=Math.ceil(P.hp)+(P.inv>0?" 🛡️":"")+(P.pwD>0?" 💥":"")+(P.pwS>0?" ⚡":""); $("dashFill").style.width=(100*(1-clamp(P.dashLeft/P.dashCd,0,1)))+"%";
-    $("ammoTxt").innerHTML=P.relT>0?"<small>장전 중…</small>":P.ammo[P.wi]+"<small> / "+magOf(P.wi)+"</small>";
+    { const mg=magOf(P.wi), am=P.ammo[P.wi], rl=P.relT>0, at=rl?"<small>장전 중…</small>":am+"<small> / "+mg+"</small>"; if(UI.aT!==at){ UI.aT=at; $("ammoTxt").innerHTML=at; }
+      const fr=Math.round(100*clamp((rl?1-P.relT/(P.relFull||1):am/mg)||0,0,1)), ac=rl?"rel":(mg>1&&am<=mg*.25?"low":""); if(UI.aF!==fr){ UI.aF=fr; $("ammoFill").style.width=fr+"%"; } if(UI.aC!==ac){ UI.aC=ac; $("ammoBox").className=ac; } }
     const cr=$("cross"), zoomed=scoped(), W0=WEAPONS[P.wkey]; cr.style.display=zoomed||!P.alive||P.dance?"none":"";
     if(zoomed){ const t=(I.dist<W0.range?"거리 "+Math.round(I.dist)+"m":"거리 ―")+" · "+(I.zoom>1?"2단계":"1단계"); if(UI.scT!==t){ UI.scT=t; $("scInfo").textContent=t; } $("scDot").className=I.onTarget?(I.onHead?"h":"o"):""; }
     { const zt=I.zoom?(W0.scope?(I.zoom>1?"2단계":"1단계"):"조준 중"):"조준"; if(UI.zT!==zt){ UI.zT=zt; $("btnZoom").textContent=zt; $("btnZoom").classList.toggle("on",!!I.zoom); } } cr.style.setProperty("--g",(5+Math.min(14,Math.hypot(P.vel.x,P.vel.z)*1.1+(P.ground?0:5)+VM.kick*6))+"px"); cr.classList.toggle("on",I.onTarget);
