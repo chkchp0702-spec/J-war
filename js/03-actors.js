@@ -220,6 +220,13 @@ function botNade(b,t,dt){ if(b.see) b.lostT=0; else b.lostT+=dt; b.nadeCd-=dt; i
   for(const s of [-1,1]){ const th=Math.atan((v*v+s*Math.sqrt(disc))/(gr*d)); if(th>1.35) continue; const c=Math.cos(th); _bd.set(dx/d*c,Math.sin(th),dz/d*c); if(!arcClear(_be,_bd,v,gr,d)) continue;
     const e=lerp(.08,.025,b.skill); _bd.x+=rnd(-e,e); _bd.z+=rnd(-e,e); _bd.normalize(); shoot(b,"grenade",_be,_bd,{dm:.65}); b.nadeCd=lerp(15,9,b.skill)+rnd(0,4); NADE_GAP[b.team]=5; b.cool=Math.max(b.cool,.5); b.nades=(b.nades||0)+1;
     _gp.set(b.pos.x,b.pos.y+2.5*b.scale,b.pos.z); floatText(_gp,"💣","#ffd740",24,.9); return; } }
+/* 봇 엄폐: 총알이 떨어져 장전할 때, 가까운 곳(2.5~8.5걸음)에서 상대 눈에 안 보이는 벽 뒤 자리를 찾아 그리로 달려감. 자리가 없으면 예전처럼 옆걸음 */
+function botCover(b,t){ b.covOn=false; if(b.robot||b.melee||b.skill<=.3||!b.ground||Math.random()>.45+b.skill*.5) return;
+  const ey=t.pos.y+1.52*t.scale, a0=Math.random()*6.2832, lim=W.S-1.2;
+  for(const r of [2.5,4.5,6.5,8.5]) for(let i=0;i<12;i++){ const an=a0+i*.5236, cx=b.pos.x+Math.sin(an)*r, cz=b.pos.z+Math.cos(an)*r; if(Math.abs(cx)>lim||Math.abs(cz)>lim) continue;
+    _gp.set(b.pos.x,b.pos.y+.6,b.pos.z); _gs.set(Math.sin(an),0,Math.cos(an)); if(rayWorld(_gp,_gs,r+.6)<r+.6) continue;          /* 그 자리까지 막힘 없이 갈 수 있나 */
+    let hid=true; for(const h of [1.5,.7]){ _gp.set(cx,b.pos.y+h*b.scale,cz); _gs.set(t.pos.x-cx,ey-_gp.y,t.pos.z-cz); const d=_gs.length(); _gs.multiplyScalar(1/d); if(rayWorld(_gp,_gs,d)>=d-.05){ hid=false; break; } }
+    if(hid){ b.covOn=true; b.cvx=cx; b.cvz=cz; b.covs=(b.covs||0)+1; return; } } }
 function botPickTarget(b){ let best=null, bd=1e9; for(const a of ACT){ if(!a.alive||!hostile(b,a)) continue; const d=b.pos.distanceTo(a.pos)*(a===b.target?.8:1); if(d<bd){ bd=d; best=a; } } return best; }
 function updateBot(b,dt){ if(!b.alive) return; const frozen=M.freeze>0||M.phase!=="play";
   if(b.slowT>0) b.slowT-=dt; if(b.inv>0) b.inv-=dt;
@@ -233,6 +240,7 @@ function updateBot(b,dt){ if(!b.alive) return; const frozen=M.freeze>0||M.phase!
     const path=b.field&&flowDir(b.field,b.pos.x,b.pos.z,_mv);
     if(b.melee){ if(dist>1.2*b.scale+.4){ if(b.see&&dist<4){ wx=dx/dist; wz=dz/dist; } else if(path){ wx=_mv.x; wz=_mv.z; } }
       b.mcd-=dt; if(dist<1.25*b.scale+.75&&Math.abs(t.pos.y-b.pos.y)<2.2*b.scale&&b.mcd<=0){ b.mcd=b.melee.cd; b.kick=1; damage(t,b.melee.dmg,b,{w:"melee"}); } }
+    else if(b.covOn&&b.relT>0){ const cx=b.cvx-b.pos.x, cz=b.cvz-b.pos.z, cd=Math.hypot(cx,cz); if(cd>.35){ wx=cx/cd; wz=cz/cd; } }   /* 장전하는 동안 벽 뒤로 */
     else if(b.see){ b.strafeT-=dt; if(b.strafeT<=0||b.wall){ b.strafe=-b.strafe; b.strafeT=rnd(.7,2.2); }
       const px=-dz/dist*b.strafe, pz=dx/dist*b.strafe; let f=0; if(dist>b.pref+3) f=1; else if(dist<b.pref-3) f=-.8; if(b.hp<b.maxhp*.3&&b.skill>.3&&!b.robot) f=-1;   /* 체력이 적으면 물러나서 회복 */
       wx=px*.75+dx/dist*f; wz=pz*.75+dz/dist*f; if(f>0&&path){ wx=px*.5+_mv.x; wz=pz*.5+_mv.z; }
@@ -244,13 +252,13 @@ function updateBot(b,dt){ if(!b.alive) return; const frozen=M.freeze>0||M.phase!
     let dy=wantYaw-b.yaw; while(dy>Math.PI) dy-=6.2832; while(dy<-Math.PI) dy+=6.2832; const turn=lerp(4,11,b.skill)*dt; b.yaw+=clamp(dy,-turn,turn); b.pitch+=clamp(wantPitch-b.pitch,-turn,turn);
     /* 사격 */
     if(!b.melee){ const w=WEAPONS[b.wkey]; b.cool-=dt;
-      if(b.relT>0){ b.relT-=dt; if(b.relT<=0) b.ammo=w.mag; }
+      if(b.relT>0){ b.relT-=dt; if(b.relT<=0){ b.ammo=w.mag; b.covOn=false; b.fieldT=0; } }
       else if(b.see&&b.seeT>lerp(.75,.2,b.skill)&&b.cool<=0&&Math.abs(dy)<.35&&dist<w.range){
         eyeOf(b,_be); _bt.set(t.pos.x,t.pos.y+(b.aimHead?1.58:1.02)*t.scale*(t.hsc||1),t.pos.z); _bd.copy(_bt).sub(_be).normalize();
         const tv=Math.hypot(t.vel.x,t.vel.z), err=lerp(.1,.016,b.skill)*(1+tv*.07)*(b.seeT<1.2?1.5:1); _bd.x+=rnd(-err,err); _bd.y+=rnd(-err,err)*.7; _bd.z+=rnd(-err,err); _bd.normalize();
         shoot(b,b.wkey,_be,_bd,null); b.ammo--; b.cool=w.rate*1.2/(w.brst||1); b.aimHead=Math.random()<b.skill*.3;
         if(--b.burst<=0){ b.burst=Math.round(rnd(3,9)); b.cool+=rnd(.25,.7)*(1.3-b.skill); }
-        if(b.ammo<=0) b.relT=w.rel*1.15; }
+        if(b.ammo<=0){ b.relT=w.rel*1.15; botCover(b,t); } }
       botNade(b,t,dt); } }
   const k=1-Math.exp(-(b.ground?9:2)*dt); b.vel.x+=(wx*sp-b.vel.x)*k; b.vel.z+=(wz*sp-b.vel.z)*k;
   moveActor(b,dt); padCheck(b);
