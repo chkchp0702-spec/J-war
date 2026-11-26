@@ -47,9 +47,17 @@ button{font-family:inherit;color:inherit;border:0;cursor:pointer}
 #dmgInd{position:absolute;left:50%;top:50%;width:0;height:0}
 #dmgInd b{position:absolute;left:-34px;top:-130px;width:68px;height:18px;border-radius:50% 50% 0 0/100% 100% 0 0;background:linear-gradient(#ff3d3d,transparent);transform-origin:34px 130px;opacity:0}
 #hpBox{position:absolute;left:max(14px,env(safe-area-inset-left));top:12px;width:210px}
-#hpBar{height:20px;border-radius:10px;background:rgba(0,0,0,.55);border:2px solid rgba(255,255,255,.85);overflow:hidden;position:relative}
-#hpFill{height:100%;width:100%;background:linear-gradient(#7CFF6B,#27c93f);transition:width .15s}
-#hpTxt{position:absolute;inset:0;text-align:center;font-weight:900;font-size:13px;line-height:17px;text-shadow:0 1px 2px #000}
+#hpBox{--h1:#8dff7a;--h2:#1fb53a;--hg:rgba(60,255,90,.35)}#hpBox.mid{--h1:#ffe36b;--h2:#ff9800;--hg:rgba(255,190,0,.35)}#hpBox.low{--h1:#ff9a8f;--h2:#e02a26;--hg:rgba(255,50,50,.6)}
+#hpRow{display:flex;align-items:center;gap:7px;position:relative}
+#hpIc{flex:none;width:24px;height:22px;border-radius:7px;background:linear-gradient(var(--h1),var(--h2));display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;line-height:1;text-shadow:0 1px 1px rgba(0,0,0,.45);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 2px 0 rgba(0,0,0,.45)}
+#hpBar{flex:1;height:20px;border-radius:6px;background:linear-gradient(rgba(4,8,20,.8),rgba(24,30,52,.7));border:2px solid rgba(255,255,255,.92);overflow:hidden;position:relative;transform:skewX(-14deg);box-shadow:0 2px 0 rgba(0,0,0,.45),0 0 9px var(--hg)}
+#hpLag{position:absolute;left:0;top:0;height:100%;width:100%;background:#fff;opacity:.85}
+#hpFill{position:absolute;left:0;top:0;height:100%;width:100%;background:linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,0) 46%),linear-gradient(var(--h1),var(--h2));transition:width .12s}
+#hpSeg{position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(25% - 2px),rgba(0,0,0,.5) calc(25% - 2px),rgba(0,0,0,.5) 25%)}
+#hpTxt{flex:none;min-width:40px;text-align:right;font-weight:900;font-size:21px;line-height:1;font-style:italic;text-shadow:0 2px 0 rgba(0,0,0,.6),0 0 6px rgba(0,0,0,.6)}
+#hpPw{position:absolute;left:31px;right:47px;top:0;text-align:center;font-size:12px;line-height:20px;text-shadow:0 1px 2px #000}
+#hpBox.low #hpBar{animation:hpLow .38s infinite alternate}#hpBox.low #hpTxt{color:#ff8a80}
+@keyframes hpLow{to{border-color:#ff5252;box-shadow:0 2px 0 rgba(0,0,0,.45),0 0 14px 2px rgba(255,40,40,.85)}}
 #dashBar{height:6px;margin-top:4px;border-radius:3px;background:rgba(0,0,0,.5);overflow:hidden}#dashFill{height:100%;background:#40c4ff;width:100%}
 #top{position:absolute;left:50%;top:8px;transform:translateX(-50%);display:flex;gap:8px;align-items:center;font-weight:900;text-shadow:0 2px 3px #000}
 #top .sc{min-width:46px;text-align:center;font-size:22px;padding:2px 10px;border-radius:10px;background:rgba(33,150,243,.85)}
@@ -85,24 +93,25 @@ body.touch #ammoBar{margin:4px auto 3px}
 #floats span{position:absolute;font-weight:900;font-size:18px;text-shadow:0 2px 2px #000,0 0 4px #000;transform:translate(-50%,-50%);white-space:nowrap;will-change:transform,opacity}
 #netPill{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);font-size:11px;background:rgba(0,0,0,.5);padding:2px 8px;border-radius:8px}
 body.touch #netPill{bottom:auto;top:44px}
-#btnPause{position:absolute;left:max(14px,env(safe-area-inset-left));top:50px;width:40px;height:36px;border-radius:10px;background:rgba(0,0,0,.5);font-size:18px;font-weight:900}
+#btnPause{position:absolute;left:max(14px,env(safe-area-inset-left));top:50px;width:40px;height:36px;border-radius:10px;--bc:rgba(0,0,0,.5);font-size:18px;font-weight:900}
 #board{position:absolute;left:max(236px,calc(env(safe-area-inset-left) + 222px));top:8px;font-size:12px;font-weight:700;background:rgba(0,0,0,.45);border-radius:10px;padding:5px 9px;min-width:120px}
 #board div{display:flex;justify-content:space-between;gap:12px}#board .me{color:#ffd740}
 /* 터치 버튼 */
-.tb{position:absolute;border-radius:50%;background:rgba(10,15,40,.38);border:2px solid rgba(255,255,255,.7);font-weight:900;font-size:13px;display:none;align-items:center;justify-content:center;text-shadow:0 1px 2px #000;backdrop-filter:blur(2px)}
+.tb{--bc:rgba(12,18,44,.46);position:absolute;border-radius:50%;background:radial-gradient(circle at 50% 24%,rgba(255,255,255,.34),rgba(255,255,255,0) 60%),var(--bc);border:2px solid rgba(255,255,255,.78);font-weight:900;font-size:13px;line-height:1.05;text-align:center;display:none;align-items:center;justify-content:center;text-shadow:0 1px 2px #000;box-shadow:inset 0 -6px 10px rgba(0,0,0,.34),inset 0 2px 2px rgba(255,255,255,.22),0 3px 6px rgba(0,0,0,.35);transition:transform .07s}
 body.touch .tb{display:flex}
-.tb.dn{background:rgba(255,255,255,.45)}
-#btnFire{right:max(26px,env(safe-area-inset-right));bottom:64px;width:92px;height:92px;font-size:30px;background:rgba(229,57,53,.5);border-color:#ff8a80}
+.tb.dn{--bc:rgba(255,255,255,.5);transform:scale(.9);box-shadow:inset 0 3px 8px rgba(0,0,0,.3),0 0 0 4px rgba(255,255,255,.22)}
+#btnFire{right:max(26px,env(safe-area-inset-right));bottom:64px;width:92px;height:92px;font-size:30px;--bc:rgba(229,57,53,.58);border-color:#ffab9f;border-width:3px;box-shadow:inset 0 -8px 14px rgba(120,0,0,.45),inset 0 2px 2px rgba(255,255,255,.3),0 0 0 5px rgba(255,90,80,.2),0 3px 8px rgba(0,0,0,.4)}
+#btnKnife{--bc:rgba(0,150,200,.4)}#btnNade{--bc:rgba(46,125,50,.48)}
 #btnJump{right:max(134px,calc(env(safe-area-inset-right) + 108px));bottom:26px;width:68px;height:68px;font-size:14px}
-#btnDash{right:max(140px,calc(env(safe-area-inset-right) + 114px));bottom:110px;width:60px;height:60px;background:rgba(2,119,189,.5)}
+#btnDash{right:max(140px,calc(env(safe-area-inset-right) + 114px));bottom:110px;width:60px;height:60px;--bc:rgba(2,119,189,.58);border-color:#9be1ff}
 #btnZoom{right:max(30px,env(safe-area-inset-right));bottom:172px;width:56px;height:56px}
 #btnRel{right:max(296px,calc(env(safe-area-inset-right) + 270px));bottom:16px;width:48px;height:48px;font-size:11px}
 #btnSlide{right:max(214px,calc(env(safe-area-inset-right) + 188px));bottom:20px;width:60px;height:60px;font-size:12px}
 #btnKnife{right:max(100px,calc(env(safe-area-inset-right) + 74px));bottom:184px;width:54px;height:54px;font-size:22px}
 #btnNade{right:max(170px,calc(env(safe-area-inset-right) + 144px));bottom:182px;width:54px;height:54px;font-size:22px}
 #btnSw{right:max(232px,calc(env(safe-area-inset-right) + 206px));bottom:98px;width:56px;height:56px;font-size:11px}
-#stick{position:absolute;width:120px;height:120px;margin:-60px;border-radius:50%;border:2px solid rgba(255,255,255,.4);background:rgba(255,255,255,.08);display:none}
-#stick i{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px;border-radius:50%;background:rgba(255,255,255,.5)}
+#stick{position:absolute;width:120px;height:120px;margin:-60px;border-radius:50%;border:2px solid rgba(255,255,255,.5);background:radial-gradient(circle,rgba(255,255,255,.03) 52%,rgba(255,255,255,.16) 100%);box-shadow:inset 0 0 14px rgba(0,0,0,.3);display:none}
+#stick i{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px;border-radius:50%;background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.95),rgba(190,205,235,.6));box-shadow:0 3px 6px rgba(0,0,0,.4),inset 0 -4px 6px rgba(0,0,0,.2)}
 #emo{position:absolute;left:50%;bottom:74px;transform:translateX(-50%);display:flex;gap:8px;pointer-events:auto;background:rgba(5,8,25,.6);padding:8px;border-radius:16px}
 .eb{width:66px;padding:6px 2px;border-radius:12px;background:#18214f;border:3px solid #fff;font-weight:900;font-size:11px;text-align:center}.eb b{display:block;font-size:24px;line-height:1.1}.eb small{display:block;opacity:.6;font-size:9px}
 #pv{position:fixed;left:0;right:0;bottom:14px;display:flex;gap:10px;align-items:center;justify-content:center;z-index:5}
@@ -162,11 +171,11 @@ table.sb{width:100%;border-collapse:collapse;font-size:15px}table.sb td{padding:
 #supBar{height:7px;margin-top:3px;border-radius:4px;background:rgba(0,0,0,.5);overflow:hidden}#supFill{height:100%;width:0;background:linear-gradient(90deg,#ffd740,#ff9100)}
 #supGlow{position:absolute;inset:0;box-shadow:inset 0 0 60px 8px rgba(255,200,0,.5);opacity:0;transition:opacity .2s}
 #btnSuper{right:max(30px,env(safe-area-inset-right));bottom:238px;width:54px;height:54px;font-size:24px;opacity:.25}
-#btnSuper.rdy{opacity:1;background:rgba(255,193,7,.75);border-color:#fff;animation:pulse .7s infinite alternate}
+#btnSuper.rdy{opacity:1;--bc:rgba(255,193,7,.78);border-color:#fff;animation:pulse .7s infinite alternate}
 @keyframes pulse{to{transform:scale(1.15)}}
 #btnEmo{right:max(296px,calc(env(safe-area-inset-right) + 270px));bottom:72px;width:52px;height:52px;font-size:22px}
-#btnZoom.on{background:rgba(0,200,83,.6);border-color:#b9f6ca}
-#aimPad{left:max(14px,env(safe-area-inset-left));top:96px;width:104px;height:104px;background:rgba(10,15,40,.3)}
+#btnZoom.on{--bc:rgba(0,200,83,.62);border-color:#b9f6ca}
+#aimPad{left:max(14px,env(safe-area-inset-left));top:96px;width:104px;height:104px;--bc:rgba(10,15,40,.3)}
 #aimPad i{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.65);pointer-events:none}
 #aimPad:after{content:"조준";position:absolute;bottom:-15px;font-size:10px;opacity:.8}
 body:not(.pad) #aimPad{display:none}
@@ -184,7 +193,7 @@ body:not(.pad) #aimPad{display:none}
   <div id="cross" style="--g:6px"><i></i><i></i><i></i><i></i><i></i></div>
   <div id="hitm"></div>
   <div id="dmgInd"><b></b><b></b><b></b></div>
-  <div id="hpBox"><div id="hpBar"><div id="hpFill"></div><div id="hpTxt">100</div></div><div id="dashBar"><div id="dashFill"></div></div><div id="supBar"><div id="supFill"></div></div></div>
+  <div id="hpBox"><div id="hpRow"><b id="hpIc">✚</b><div id="hpBar"><div id="hpLag"></div><div id="hpFill"></div><div id="hpSeg"></div></div><span id="hpTxt">100</span><span id="hpPw"></span></div><div id="dashBar"><div id="dashFill"></div></div><div id="supBar"><div id="supFill"></div></div></div>
   <button id="btnPause" class="tb" style="display:flex;border-radius:10px" data-a="pause">≡</button>
   <div id="board" class="hide"></div>
   <div id="top"><span class="sc" id="scL">0</span><span id="timer">0:00</span><span class="sc r" id="scR">0</span></div>
@@ -238,12 +247,12 @@ body:not(.pad) #aimPad{display:none}
 <div id="rot"><b>📱↪️</b>휴대폰을 가로로 돌려 주세요</div>
 
 <script src="three.min.js"></script>
-<script src="js/01-data.js?v=18"></script>
-<script src="js/02-core.js?v=18"></script>
-<script src="js/03-actors.js?v=18"></script>
-<script src="js/04-player.js?v=18"></script>
-<script src="js/05-modes.js?v=18"></script>
-<script src="js/06-net.js?v=18"></script>
-<script src="js/07-ui.js?v=18"></script>
+<script src="js/01-data.js?v=19"></script>
+<script src="js/02-core.js?v=19"></script>
+<script src="js/03-actors.js?v=19"></script>
+<script src="js/04-player.js?v=19"></script>
+<script src="js/05-modes.js?v=19"></script>
+<script src="js/06-net.js?v=19"></script>
+<script src="js/07-ui.js?v=19"></script>
 </body>
 </html>

@@ -18,8 +18,12 @@ const UI = {scr:"home",bT:0,sT:0,hT:0,vg:0,ind:[0,0,0],indI:0,
   timer(sec,txt){ const el=$("timer"); if(txt){ if(el.textContent!==txt) el.textContent=txt; return; } const s=Math.max(0,Math.ceil(sec)), v=Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); if(el.textContent!==v) el.textContent=v; },
   board(rows){ $("board").innerHTML=rows.map((r,i)=>`<div class="${r.me?"me":""}"><span>${i+1}. ${esc(r.n)}</span><b>${r.k}</b></div>`).join(""); },
   net(t){ const p=$("netPill"); p.textContent=t; p.classList.toggle("hide",!t); },
-  hud(dt){ if(!P) return; const hp=clamp(P.hp/P.maxhp,0,1), f=$("hpFill"); f.style.width=(hp*100)+"%"; f.style.background=hp>.5?"linear-gradient(#7CFF6B,#27c93f)":hp>.25?"linear-gradient(#ffe36b,#ffa000)":"linear-gradient(#ff8a80,#e53935)";
-    $("hpTxt").textContent=Math.ceil(P.hp)+(P.inv>0?" 🛡️":"")+(P.pwD>0?" 💥":"")+(P.pwS>0?" ⚡":""); $("dashFill").style.width=(100*(1-clamp(P.dashLeft/P.dashCd,0,1)))+"%";
+  hud(dt){ if(!P) return; const hp=clamp(P.hp/P.maxhp,0,1), hw=Math.round(hp*1000)/10; if(UI.hW!==hw){ UI.hW=hw; $("hpFill").style.width=hw+"%"; }
+    /* 흰 잔상 막대: 맞으면 잠깐 멈췄다가 따라 줄어듦(얼마나 깎였는지 보임) */
+    { let lg=UI.hL==null?hp:UI.hL; if(hp>=lg){ lg=hp; UI.hD=.35; } else if((UI.hD-=dt)<=0) lg=Math.max(hp,lg-dt*.55); UI.hL=lg; const lw=Math.round(lg*1000)/10; if(UI.hLW!==lw){ UI.hLW=lw; $("hpLag").style.width=lw+"%"; }
+      const hc=hp>.5?"":hp>.25?"mid":"low"; if(UI.hC!==hc){ UI.hC=hc; $("hpBox").className=hc; }
+      const ht=""+Math.ceil(P.hp), pw=(P.inv>0?"🛡️":"")+(P.pwD>0?"💥":"")+(P.pwS>0?"⚡":""); if(UI.hTx!==ht){ UI.hTx=ht; $("hpTxt").textContent=ht; } if(UI.hP!==pw){ UI.hP=pw; $("hpPw").textContent=pw; } }
+    $("dashFill").style.width=(100*(1-clamp(P.dashLeft/P.dashCd,0,1)))+"%";
     { const mg=magOf(P.wi), am=P.ammo[P.wi], rl=P.relT>0, at=rl?"<small>장전 중…</small>":am+"<small> / "+mg+"</small>"; if(UI.aT!==at){ UI.aT=at; $("ammoTxt").innerHTML=at; }
       const fr=Math.round(100*clamp((rl?1-P.relT/(P.relFull||1):am/mg)||0,0,1)), ac=rl?"rel":(mg>1&&am<=mg*.25?"low":""); if(UI.aF!==fr){ UI.aF=fr; $("ammoFill").style.width=fr+"%"; } if(UI.aC!==ac){ UI.aC=ac; $("ammoBox").className=ac; } }
     const cr=$("cross"), zoomed=scoped(), W0=WEAPONS[P.wkey]; cr.style.display=zoomed||!P.alive||P.dance?"none":"";
